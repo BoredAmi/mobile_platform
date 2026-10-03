@@ -6,6 +6,12 @@ wheel:
   mu: 1.0                  # task requirement: mu1 = mu2 = 1.0 on the drive wheels
   joint_damping: 0.005     # N m s/rad, viscous loss in the gearbox (guess)
   joint_friction: 0.0      # N m, Coulomb friction (guess)
+  # Collision shape of the drive wheels: cylinder (as in collision_suggestion) or sphere.
+  # With the 40 mm wide cylinder, DART puts the floor contacts on the wheels' inner edges, so
+  # the effective track width becomes 0.230 m instead of 0.270 m and in-place turns are 15 %
+  # faster than wheel odometry predicts. A sphere of the wheel radius touches the floor at the
+  # tyre centre line like a real (slightly crowned) tyre does.
+  collision: sphere
 
 caster:
   mu: 0.0                  # frictionless spheres (task requirement)

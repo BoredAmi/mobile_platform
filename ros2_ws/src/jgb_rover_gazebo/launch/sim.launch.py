@@ -7,8 +7,10 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from jgb_rover_control.spec_params import render
 from launch.actions import (AppendEnvironmentVariable, DeclareLaunchArgument, IncludeLaunchDescription,
-                            OpaqueFunction, SetEnvironmentVariable)
+                            OpaqueFunction, RegisterEventHandler, SetEnvironmentVariable)
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
@@ -24,12 +26,16 @@ def launch_setup(context):
     headless = LaunchConfiguration('headless').perform(context).lower() in ('true', '1')
     gz_args = f'-r {"-s --headless-rendering " if headless else ""}{world_path}'
 
+    controllers_template = LaunchConfiguration('controllers_file').perform(context) or os.path.join(
+        get_package_share_directory('jgb_rover_control'), 'config', 'controllers.yaml')
+    controllers_file = render(controllers_template)
+
     xacro_file = os.path.join(desc_share, 'urdf', 'jgb_rover.urdf.xacro')
     robot_description = ParameterValue(Command(
         ['xacro ', xacro_file,
          ' camera_pitch:=', LaunchConfiguration('camera_pitch'),
          ' inject_errors:=', LaunchConfiguration('inject_errors'),
-         ' controllers_file:=', LaunchConfiguration('controllers_file')]),
+         ' controllers_file:=', controllers_file]),
         value_type=str)
 
     gazebo = IncludeLaunchDescription(
@@ -52,7 +58,14 @@ def launch_setup(context):
         parameters=[{'config_file': os.path.join(gz_share, 'config', 'bridge.yaml'),
                      'use_sim_time': True}])
 
-    return [gazebo, rsp, spawn, bridge]
+    spawners = [
+        Node(package='controller_manager', executable='spawner', output='screen',
+             arguments=[name, '--controller-manager', '/controller_manager',
+                        '--controller-manager-timeout', '60'])
+        for name in ('joint_state_broadcaster', 'diff_drive_controller')]
+    start_controllers = RegisterEventHandler(OnProcessExit(target_action=spawn, on_exit=spawners))
+
+    return [gazebo, rsp, spawn, bridge, start_controllers]
 
 
 def generate_launch_description():
@@ -66,7 +79,7 @@ def generate_launch_description():
         DeclareLaunchArgument('inject_errors', default_value='false',
                               description='Left wheel radius mismatch (see sim_assumptions.yaml)'),
         DeclareLaunchArgument('controllers_file', default_value='',
-                              description='ros2_control controllers yaml; empty = jgb_rover_control default'),
+                              description='controllers yaml template; empty = jgb_rover_control/config/controllers.yaml'),
         DeclareLaunchArgument('x', default_value='0.0'),
         DeclareLaunchArgument('y', default_value='0.0'),
         DeclareLaunchArgument('z', default_value='0.005', description='Small drop so the robot settles'),

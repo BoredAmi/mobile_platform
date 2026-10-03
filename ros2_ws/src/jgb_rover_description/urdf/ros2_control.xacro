@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!-- ros2_control system for the two drive wheels. Velocity command, position + velocity state
+     (position = encoder count, velocity = derived). The hardware plugin is the only thing that
+     changes between simulation and the real robot. Uses properties of jgb_rover.urdf.xacro. -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="wheel_interfaces" params="joint">
+    <joint name="${joint}">
+      <command_interface name="velocity">
+        <param name="min">${-wheel_vel_limit}</param>
+        <param name="max">${wheel_vel_limit}</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </xacro:macro>
+
+  <ros2_control name="jgb_rover_system" type="system">
+    <hardware>
+      <xacro:if value="$(arg sim_gazebo)">
+        <plugin>ign_ros2_control/IgnitionSystem</plugin>
+      </xacro:if>
+      <xacro:unless value="$(arg sim_gazebo)">
+        <!-- real robot: custom hardware interface talking to the ESP32/Teensy (not written yet) -->
+        <plugin>$(arg hardware_plugin)</plugin>
+      </xacro:unless>
+    </hardware>
+    <xacro:wheel_interfaces joint="left_wheel_joint"/>
+    <xacro:wheel_interfaces joint="right_wheel_joint"/>
+  </ros2_control>
+
+</robot>

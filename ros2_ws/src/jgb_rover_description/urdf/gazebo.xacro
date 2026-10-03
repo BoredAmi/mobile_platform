@@ -16,6 +16,20 @@
   <xacro:surface link="caster_front_link" mu="${sim.caster.mu}"/>
   <xacro:surface link="caster_rear_link" mu="${sim.caster.mu}"/>
 
+  <!-- ===================== ros2_control ===================== -->
+  <xacro:property name="controllers_file" value="$(arg controllers_file)"/>
+  <xacro:if value="${controllers_file != ''}">
+    <gazebo>
+      <plugin filename="libign_ros2_control-system.so" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+        <parameters>${controllers_file}</parameters>
+        <ros>
+          <remapping>/diff_drive_controller/cmd_vel:=/cmd_vel</remapping>
+          <remapping>/diff_drive_controller/odom:=/wheel/odom</remapping>
+        </ros>
+      </plugin>
+    </gazebo>
+  </xacro:if>
+
   <!-- ===================== ground truth ===================== -->
   <!-- Pose/twist of the model frame (= base_footprint) in the world. Bridged to
        /ground_truth/odom. Not published on /tf, so it cannot fight with the EKF or SLAM. -->

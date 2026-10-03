@@ -11,7 +11,9 @@
   <xacro:arg name="camera_pitch" default=""/>
   <xacro:arg name="inject_errors" default="false"/>
   <xacro:arg name="sim_gazebo" default="true"/>
+  <!-- rendered controllers yaml (see jgb_rover_control.spec_params); empty = no gz ros2_control plugin -->
   <xacro:arg name="controllers_file" default=""/>
+  <xacro:arg name="hardware_plugin" default="jgb_rover_hardware/JgbRoverSystem"/>
 
   <!-- ===================== data ===================== -->
   <xacro:property name="pkg" value="$(find jgb_rover_description)"/>
@@ -104,7 +106,14 @@
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
-        <geometry><cylinder radius="${wheel_r * r_scale}" length="${wheel_w}"/></geometry>
+        <geometry>
+          <xacro:if value="${sim.wheel.collision == 'sphere'}">
+            <sphere radius="${wheel_r * r_scale}"/>
+          </xacro:if>
+          <xacro:if value="${sim.wheel.collision == 'cylinder'}">
+            <cylinder radius="${wheel_r * r_scale}" length="${wheel_w}"/>
+          </xacro:if>
+        </geometry>
       </collision>
       <inertial>
         <!-- solid cylinder, spin axis Y -->
@@ -117,9 +126,11 @@
     <joint name="${side}_wheel_joint" type="continuous">
       <parent link="base_link"/>
       <child link="${side}_wheel_link"/>
-      <!-- wheel centre is given in base_footprint; with r_scale < 1 the axle stays put and the
-           wheel simply rolls on a smaller radius (sub-mm tilt, negligible) -->
-      <origin xyz="${centre[0]} ${centre[1]} ${centre[2] - base_z}" rpy="0 0 0"/>
+      <!-- wheel centre is given in base_footprint. With r_scale < 1 (error injection) the axle is
+           lowered by the radius difference so the smaller wheel still touches the floor; otherwise
+           the body would rest on the other wheel + the two centre-line casters and the small
+           wheel would hang in the air. -->
+      <origin xyz="${centre[0]} ${centre[1]} ${centre[2] - base_z - wheel_r * (1 - r_scale)}" rpy="0 0 0"/>
       <axis xyz="${wheel_axis[0]} ${wheel_axis[1]} ${wheel_axis[2]}"/>
       <limit effort="${wheel_effort_limit}" velocity="${wheel_vel_limit}"/>
       <dynamics damping="${sim.wheel.joint_damping}" friction="${sim.wheel.joint_friction}"/>
@@ -194,6 +205,9 @@
     <child link="visual_scan_link"/>
     <origin xyz="${cam_xyz[0]} ${cam_xyz[1]} 0" rpy="0 0 0"/>
   </joint>
+
+  <!-- ===================== ros2_control ===================== -->
+  <xacro:include filename="$(find jgb_rover_description)/urdf/ros2_control.xacro"/>
 
   <!-- ===================== simulation ===================== -->
   <xacro:if value="$(arg sim_gazebo)">
