@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!-- Gazebo (Fortress) specific parts: surface friction and the ground-truth pose source.
+     Included from jgb_rover.urdf.xacro; uses its properties (spec, sim). -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ===================== surfaces ===================== -->
+  <xacro:macro name="surface" params="link mu">
+    <gazebo reference="${link}">
+      <mu1>${mu}</mu1>
+      <mu2>${mu}</mu2>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:surface link="left_wheel_link" mu="${sim.wheel.mu}"/>
+  <xacro:surface link="right_wheel_link" mu="${sim.wheel.mu}"/>
+  <xacro:surface link="caster_front_link" mu="${sim.caster.mu}"/>
+  <xacro:surface link="caster_rear_link" mu="${sim.caster.mu}"/>
+
+  <!-- ===================== ground truth ===================== -->
+  <!-- Pose/twist of the model frame (= base_footprint) in the world. Bridged to
+       /ground_truth/odom. Not published on /tf, so it cannot fight with the EKF or SLAM. -->
+  <gazebo>
+    <plugin filename="ignition-gazebo-odometry-publisher-system"
+            name="ignition::gazebo::systems::OdometryPublisher">
+      <odom_frame>world</odom_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
+      <odom_topic>/ground_truth/odom</odom_topic>
+      <tf_topic>/ground_truth/tf_unused</tf_topic>
+      <odom_publish_frequency>${sim.ground_truth.publish_rate_hz}</odom_publish_frequency>
+      <dimensions>3</dimensions>
+    </plugin>
+  </gazebo>
+
+</robot>

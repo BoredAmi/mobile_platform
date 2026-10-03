@@ -1,0 +1,203 @@
+<?xml version="1.0"?>
+<!--
+  jgb_rover: differential-drive rover with 2 swivel casters, MPU6050 IMU and a USB webcam.
+  Every dimension comes from config/robot_spec.yaml (installed from the repository root);
+  values that are not in the spec come from config/sim_assumptions.yaml.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="jgb_rover">
+
+  <!-- ===================== arguments ===================== -->
+  <!-- empty = use camera.pitch_down_default from robot_spec.yaml -->
+  <xacro:arg name="camera_pitch" default=""/>
+  <xacro:arg name="inject_errors" default="false"/>
+  <xacro:arg name="sim_gazebo" default="true"/>
+  <xacro:arg name="controllers_file" default=""/>
+
+  <!-- ===================== data ===================== -->
+  <xacro:property name="pkg" value="$(find jgb_rover_description)"/>
+  <xacro:property name="spec" value="${xacro.load_yaml(pkg + '/config/robot_spec.yaml')}"/>
+  <xacro:property name="sim" value="${xacro.load_yaml(pkg + '/config/sim_assumptions.yaml')}"/>
+  <xacro:property name="mesh_dir" value="file://${pkg}/meshes"/>
+
+  <!-- base_footprint -> base_link -->
+  <xacro:property name="base_z" value="${spec.base_link.origin_in_base_footprint[2]}"/>
+
+  <!-- drive -->
+  <xacro:property name="wheel_r" value="${spec.drive.wheel_radius}"/>
+  <xacro:property name="wheel_w" value="${spec.drive.wheel_width}"/>
+  <xacro:property name="wheel_m" value="${spec.drive.wheel_mass_estimate}"/>
+  <xacro:property name="wheel_vel_limit" value="${spec.drive.no_load_speed}"/>
+  <xacro:property name="wheel_effort_limit" value="${spec.drive.stall_torque}"/>
+  <xacro:property name="wheel_axis" value="${spec.drive.wheel_joint_axis}"/>
+  <xacro:property name="inject" value="${'$(arg inject_errors)'.lower() in ('true', '1')}"/>
+  <xacro:property name="left_r_scale"
+                  value="${sim.error_injection.left_wheel_radius_scale if inject else 1.0}"/>
+
+  <!-- camera -->
+  <xacro:property name="camera_pitch_arg" value="$(arg camera_pitch)"/>
+  <xacro:property name="camera_pitch"
+                  value="${spec.camera.pitch_down_default if camera_pitch_arg == '' else float(camera_pitch_arg)}"/>
+  <xacro:property name="cam_xyz" value="${spec.camera.origin_in_base_footprint}"/>
+
+  <!-- body inertial: spec COM is in base_footprint, shift into base_link -->
+  <xacro:property name="mp" value="${spec.mass_properties}"/>
+  <xacro:property name="I" value="${mp.inertia_about_com}"/>
+
+  <!-- ===================== links ===================== -->
+  <link name="base_footprint"/>
+
+  <link name="base_link">
+    <!-- Static visual meshes are in base_footprint coordinates. -->
+    <xacro:macro name="static_visual" params="name">
+      <visual name="${name}_visual">
+        <origin xyz="0 0 ${-base_z}" rpy="0 0 0"/>
+        <geometry><mesh filename="${mesh_dir}/${name}.stl"/></geometry>
+        <material name="${name}_material"><color rgba="${sim_colors[name]}"/></material>
+      </visual>
+    </xacro:macro>
+    <xacro:property name="sim_colors" value="${dict(
+        chassis_printed='0.95 0.55 0.10 1', battery='0.15 0.15 0.15 1',
+        breadboard='0.95 0.95 0.92 1', drive_unit_left='0.6 0.6 0.65 1',
+        drive_unit_right='0.6 0.6 0.65 1')}"/>
+    <xacro:static_visual name="chassis_printed"/>
+    <xacro:static_visual name="battery"/>
+    <xacro:static_visual name="breadboard"/>
+    <xacro:static_visual name="drive_unit_left"/>
+    <xacro:static_visual name="drive_unit_right"/>
+
+    <!-- Collision primitives from collision_suggestion (box entries only; wheels below). -->
+    <xacro:macro name="box_collision" params="entry">
+      <collision name="${entry['name']}_collision">
+        <origin xyz="${entry['centre'][0]} ${entry['centre'][1]} ${entry['centre'][2] - base_z}" rpy="0 0 0"/>
+        <geometry><box size="${entry['box'][0]} ${entry['box'][1]} ${entry['box'][2]}"/></geometry>
+      </collision>
+    </xacro:macro>
+    <xacro:macro name="box_collisions" params="entries">
+      <xacro:if value="${len(entries) > 0}">
+        <xacro:if value="${'box' in entries[0]}">
+          <xacro:box_collision entry="${entries[0]}"/>
+        </xacro:if>
+        <xacro:box_collisions entries="${entries[1:]}"/>
+      </xacro:if>
+    </xacro:macro>
+    <xacro:box_collisions entries="${spec.collision_suggestion}"/>
+
+    <inertial>
+      <origin xyz="${mp.com_in_base_footprint[0]} ${mp.com_in_base_footprint[1]} ${mp.com_in_base_footprint[2] - base_z}" rpy="0 0 0"/>
+      <mass value="${mp.total_mass}"/>
+      <inertia ixx="${I.ixx}" iyy="${I.iyy}" izz="${I.izz}" ixy="${I.ixy}" ixz="${I.ixz}" iyz="${I.iyz}"/>
+    </inertial>
+  </link>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="${spec.base_link.origin_in_base_footprint[0]} ${spec.base_link.origin_in_base_footprint[1]} ${base_z}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===================== drive wheels ===================== -->
+  <xacro:macro name="drive_wheel" params="side centre r_scale">
+    <link name="${side}_wheel_link">
+      <visual>
+        <geometry><mesh filename="${mesh_dir}/drive_wheel.stl"/></geometry>
+        <material name="wheel_material"><color rgba="0.1 0.1 0.1 1"/></material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry><cylinder radius="${wheel_r * r_scale}" length="${wheel_w}"/></geometry>
+      </collision>
+      <inertial>
+        <!-- solid cylinder, spin axis Y -->
+        <mass value="${wheel_m}"/>
+        <inertia ixx="${wheel_m * (3 * wheel_r**2 + wheel_w**2) / 12}" ixy="0" ixz="0"
+                 iyy="${wheel_m * wheel_r**2 / 2}" iyz="0"
+                 izz="${wheel_m * (3 * wheel_r**2 + wheel_w**2) / 12}"/>
+      </inertial>
+    </link>
+    <joint name="${side}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${side}_wheel_link"/>
+      <!-- wheel centre is given in base_footprint; with r_scale < 1 the axle stays put and the
+           wheel simply rolls on a smaller radius (sub-mm tilt, negligible) -->
+      <origin xyz="${centre[0]} ${centre[1]} ${centre[2] - base_z}" rpy="0 0 0"/>
+      <axis xyz="${wheel_axis[0]} ${wheel_axis[1]} ${wheel_axis[2]}"/>
+      <limit effort="${wheel_effort_limit}" velocity="${wheel_vel_limit}"/>
+      <dynamics damping="${sim.wheel.joint_damping}" friction="${sim.wheel.joint_friction}"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:drive_wheel side="left" centre="${spec.drive.left_wheel_centre}" r_scale="${left_r_scale}"/>
+  <xacro:drive_wheel side="right" centre="${spec.drive.right_wheel_centre}" r_scale="1.0"/>
+
+  <!-- ===================== casters ===================== -->
+  <!-- Fixed links at the swivel axes with a frictionless sphere. Their mass is already part of
+       mass_properties (base_link), so they carry no inertial of their own. -->
+  <xacro:macro name="caster" params="name axis_xy">
+    <xacro:property name="cr" value="${spec.casters.wheel_radius}"/>
+    <link name="caster_${name}_link">
+      <visual>
+        <origin xyz="${-axis_xy[0]} ${-axis_xy[1]} ${-cr}" rpy="0 0 0"/>
+        <geometry><mesh filename="${mesh_dir}/caster_${name}.stl"/></geometry>
+        <material name="caster_material"><color rgba="0.3 0.3 0.35 1"/></material>
+      </visual>
+      <collision>
+        <geometry><sphere radius="${cr}"/></geometry>
+      </collision>
+    </link>
+    <joint name="caster_${name}_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="caster_${name}_link"/>
+      <origin xyz="${axis_xy[0]} ${axis_xy[1]} ${cr - base_z}" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:caster name="front" axis_xy="${spec.casters.front_swivel_axis_xy}"/>
+  <xacro:caster name="rear" axis_xy="${spec.casters.rear_swivel_axis_xy}"/>
+
+  <!-- ===================== IMU ===================== -->
+  <link name="${spec.imu.frame}"/>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="${spec.imu.frame}"/>
+    <origin xyz="${spec.imu.origin_in_base_footprint[0]} ${spec.imu.origin_in_base_footprint[1]} ${spec.imu.origin_in_base_footprint[2] - base_z}"
+            rpy="${spec.imu.rpy[0]} ${spec.imu.rpy[1]} ${spec.imu.rpy[2]}"/>
+  </joint>
+
+  <!-- ===================== camera ===================== -->
+  <!-- camera_link: x forward along the lens axis, origin at the lens centre, pitched down by
+       camera_pitch (positive pitch about +Y tilts +X down, REP-103). -->
+  <link name="${spec.camera.frame}">
+    <visual>
+      <!-- webcam.stl is in base_footprint coordinates, modelled at mesh_cad_pitch -->
+      <origin xyz="${-cam_xyz[0]} ${-cam_xyz[1]} ${-cam_xyz[2]}" rpy="0 ${-sim.camera.mesh_cad_pitch} 0"/>
+      <geometry><mesh filename="${mesh_dir}/webcam.stl"/></geometry>
+      <material name="webcam_material"><color rgba="0.05 0.05 0.05 1"/></material>
+    </visual>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="${spec.camera.frame}"/>
+    <origin xyz="${cam_xyz[0]} ${cam_xyz[1]} ${cam_xyz[2] - base_z}" rpy="0 ${camera_pitch} 0"/>
+  </joint>
+
+  <link name="camera_optical_frame"/>
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="${spec.camera.frame}"/>
+    <child link="camera_optical_frame"/>
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+
+  <!-- Frame of the visual floor scan: ground projection of the lens centre. -->
+  <link name="visual_scan_link"/>
+  <joint name="visual_scan_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="visual_scan_link"/>
+    <origin xyz="${cam_xyz[0]} ${cam_xyz[1]} 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===================== simulation ===================== -->
+  <xacro:if value="$(arg sim_gazebo)">
+    <xacro:include filename="$(find jgb_rover_description)/urdf/gazebo.xacro"/>
+  </xacro:if>
+
+</robot>

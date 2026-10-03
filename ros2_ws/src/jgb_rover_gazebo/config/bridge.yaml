@@ -1,0 +1,13 @@
+# ros_gz_bridge topics. Names on the ROS side are the ones the real drivers will use.
+- ros_topic_name: /clock
+  gz_topic_name: /clock
+  ros_type_name: rosgraph_msgs/msg/Clock
+  gz_type_name: ignition.msgs.Clock
+  direction: GZ_TO_ROS
+
+# Ground truth (simulation only), see urdf/gazebo.xacro OdometryPublisher
+- ros_topic_name: /ground_truth/odom
+  gz_topic_name: /ground_truth/odom
+  ros_type_name: nav_msgs/msg/Odometry
+  gz_type_name: ignition.msgs.Odometry
+  direction: GZ_TO_ROS

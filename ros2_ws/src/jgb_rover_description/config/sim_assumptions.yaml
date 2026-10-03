@@ -1,0 +1,24 @@
+# Values that are NOT in robot_spec.yaml but are needed for the simulation.
+# Every assumption lives here (and only here) so it is easy to review and tune.
+# Units: SI (m, kg, rad, s).
+
+wheel:
+  mu: 1.0                  # task requirement: mu1 = mu2 = 1.0 on the drive wheels
+  joint_damping: 0.005     # N m s/rad, viscous loss in the gearbox (guess)
+  joint_friction: 0.0      # N m, Coulomb friction (guess)
+
+caster:
+  mu: 0.0                  # frictionless spheres (task requirement)
+
+camera:
+  # webcam.stl was modelled with the camera level (pitch 0); its visual is attached to
+  # camera_link so it follows the camera_pitch argument.
+  mesh_cad_pitch: 0.0
+
+error_injection:
+  # Applied only when the xacro arg inject_errors:=true. Physically shrinks the left
+  # wheel's collision cylinder; the controller still assumes the nominal radius.
+  left_wheel_radius_scale: 0.985     # 1.5 % smaller
+
+ground_truth:
+  publish_rate_hz: 50.0

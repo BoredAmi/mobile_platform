@@ -1,0 +1,87 @@
+# Layout of worlds/apartment.sdf. Edit here, then regenerate:
+#   PYTHONNOUSERSITE=1 python3 scripts/gen_world.py
+# Coordinates in the world frame (m, rad). The robot spawns at the origin facing +x.
+# Wall boxes: [cx, cy, length_x, length_y]; obstacles have explicit size.
+
+world_name: apartment
+
+floor:
+  size: [14.0, 10.0]
+  color: [0.72, 0.72, 0.70]      # matte light grey
+  mu: 1.0
+
+walls:
+  height: 0.6
+  thickness: 0.1
+  color: [0.97, 0.97, 0.97]      # white
+  # main room interior x [-3, 3], y [-2.5, 2.5] (6 x 5 m)
+  # side room interior x [3.1, 5.1], y [-1.5, 1.5] (2 x 3 m), doorway y [-0.45, 0.45]
+  boxes:
+    main_south:   [0.0,   -2.55, 6.2, 0.1]
+    main_north:   [0.0,    2.55, 6.2, 0.1]
+    main_west:    [-3.05,  0.0,  0.1, 5.0]
+    shared_south: [3.05, -1.475, 0.1, 2.05]
+    shared_north: [3.05,  1.475, 0.1, 2.05]
+    side_south:   [4.15,  -1.55, 2.1, 0.1]
+    side_north:   [4.15,   1.55, 2.1, 0.1]
+    side_east:    [5.15,   0.0,  0.1, 3.2]
+
+# Obstacles. type box: size [x, y, z]; type cylinder: radius, height.
+# z_base is the height of the bottom face (0 = on the floor).
+obstacles:
+  # table 1.0 x 0.6 m: four legs and a top (overhang, not visible to the floor scan)
+  - {name: table_leg_0, type: cylinder, xy: [-1.0,  1.5], radius: 0.025, height: 0.72, color: [0.45, 0.30, 0.18]}
+  - {name: table_leg_1, type: cylinder, xy: [-2.0,  1.5], radius: 0.025, height: 0.72, color: [0.45, 0.30, 0.18]}
+  - {name: table_leg_2, type: cylinder, xy: [-1.0,  0.9], radius: 0.025, height: 0.72, color: [0.45, 0.30, 0.18]}
+  - {name: table_leg_3, type: cylinder, xy: [-2.0,  0.9], radius: 0.025, height: 0.72, color: [0.45, 0.30, 0.18]}
+  - {name: table_top,   type: box, xy: [-1.5,  1.2], size: [1.1, 0.7, 0.03], z_base: 0.72, color: [0.55, 0.38, 0.22]}
+  # chair 0.4 x 0.4 m: four square legs and a seat (overhang)
+  - {name: chair_leg_0, type: box, xy: [-1.3, -0.1], size: [0.03, 0.03, 0.45], color: [0.15, 0.15, 0.15]}
+  - {name: chair_leg_1, type: box, xy: [-1.7, -0.1], size: [0.03, 0.03, 0.45], color: [0.15, 0.15, 0.15]}
+  - {name: chair_leg_2, type: box, xy: [-1.3, -0.5], size: [0.03, 0.03, 0.45], color: [0.15, 0.15, 0.15]}
+  - {name: chair_leg_3, type: box, xy: [-1.7, -0.5], size: [0.03, 0.03, 0.45], color: [0.15, 0.15, 0.15]}
+  - {name: chair_seat,  type: box, xy: [-1.5, -0.3], size: [0.42, 0.42, 0.03], z_base: 0.45, color: [0.6, 0.1, 0.1]}
+  # free-standing objects
+  - {name: cardboard_box, type: box, xy: [1.5, -1.4], yaw: 0.3, size: [0.5, 0.4, 0.4], color: [0.65, 0.48, 0.28]}
+  - {name: bin,           type: cylinder, xy: [1.8, 1.4], radius: 0.15, height: 0.4, color: [0.1, 0.3, 0.7]}
+  # deliberately floor-like colour: expected failure case for the visual floor scan
+  - {name: grey_box,      type: box, xy: [-2.2, -1.6], size: [0.3, 0.3, 0.2], color: [0.76, 0.76, 0.74]}
+  # side room
+  - {name: side_box,      type: box, xy: [4.6, 0.95], size: [0.4, 0.6, 0.35], color: [0.2, 0.55, 0.25]}
+  - {name: plant_pot,     type: cylinder, xy: [4.6, -1.0], radius: 0.12, height: 0.45, color: [0.75, 0.35, 0.2]}
+
+# Visual-only items on wall faces. 'xy' is the point on the wall face, 'normal_yaw' the
+# direction the item faces (into the room).
+posters:
+  size: [0.5, 0.35]              # width, height
+  z_centre: 0.35
+  items:
+    - {name: poster_0, xy: [-0.5,  2.5],  normal_yaw: -1.5708, seed: 1}
+    - {name: poster_1, xy: [-3.0, -1.0],  normal_yaw:  0.0,    seed: 2}
+    - {name: poster_2, xy: [ 5.1,  0.0],  normal_yaw:  3.1416, seed: 3}
+
+aruco:
+  dictionary: DICT_4X4_50
+  marker_size: 0.10              # black square edge
+  z_centre: 0.30
+  texture_px_per_cell: 32
+  items:
+    - {id: 0, xy: [-2.0, -2.5], normal_yaw:  1.5708}
+    - {id: 1, xy: [ 0.5, -2.5], normal_yaw:  1.5708}
+    - {id: 2, xy: [ 2.2, -2.5], normal_yaw:  1.5708}
+    - {id: 3, xy: [ 1.0,  2.5], normal_yaw: -1.5708}
+    - {id: 4, xy: [-2.2,  2.5], normal_yaw: -1.5708}
+    - {id: 5, xy: [-3.0,  1.0], normal_yaw:  0.0}
+    - {id: 6, xy: [ 3.0,  1.5], normal_yaw:  3.1416}
+    - {id: 7, xy: [ 4.1, -1.5], normal_yaw:  1.5708}
+
+lighting:
+  cast_shadows: false            # see README "where the visual scan fails"
+  ambient: [0.6, 0.6, 0.6]
+
+# Slip-injection floor patches (only in apartment_slip.sdf), low friction.
+slip_patches:
+  mu: 0.05
+  items:
+    - {xy: [0.5, 0.0], size: [0.6, 0.6]}
+    - {xy: [-1.0, -1.5], size: [0.6, 0.6]}
