@@ -1,0 +1,37 @@
+# visual_floor_scan: camera -> LaserScan with the flat-floor assumption.
+visual_floor_scan:
+  ros__parameters:
+    image_topic: /camera/image_raw
+    camera_info_topic: /camera/camera_info
+    scan_topic: /visual_scan
+    debug_topic: /visual_scan/debug
+    base_frame: base_footprint
+    scan_frame: visual_scan_link       # ground projection of the lens (URDF)
+    proc_width: 320                    # processing resolution
+    proc_height: 240
+    max_rate: 15.0                     # Hz; slower frames are dropped, never queued
+    horizontal_fov: 0.0                # rad; 0 = from camera_info
+    num_beams: 160
+    range_min: 0.15                    # m (robot_spec: closest visible floor at 15 deg tilt)
+    range_max: 2.5                     # m
+    no_obstacle_mode: max_plus         # max_plus (slam_toolbox clears free space) | inf (REP-117)
+    no_obstacle_margin: 0.05           # m, "no obstacle" = range_max + margin
+    unobserved_value: 0.0              # beams no column covered (below range_min = ignored)
+    # floor colour model (Lab, 8-bit units)
+    seed_width_fraction: 0.25          # seed patch at the bottom centre of the image
+    seed_height_fraction: 0.08
+    mahalanobis_threshold: 4.0
+    learning_rate: 0.02                # per frame, slow
+    luminance_weight: 1.0              # < 1 makes the model more tolerant of shadows (and of grey walls)
+    min_stddev_l: 8.0                  # lower bound of the model spread: illumination change across
+    min_stddev_ab: 3.0                 #   the floor that the near seed patch cannot see
+    seed_inlier_fraction: 0.8          # learn only if this fraction of the seed already fits
+    init_frames: 10
+    morph_kernel: 5
+    blur_kernel: 3
+    use_canny_edges: true
+    canny_low: 60.0
+    canny_high: 150.0
+    min_obstacle_px: 3                 # non-floor run length that counts as an obstacle
+    boundary_offset_px: 1.0            # blur + Canny edge shift the boundary ~1 px towards the robot
+    debug_every_n: 2

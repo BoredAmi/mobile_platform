@@ -65,6 +65,36 @@
     </sensor>
   </gazebo>
 
+  <!-- ===================== camera (USB webcam) ===================== -->
+  <!-- Gazebo cameras look along +X of their link: camera_link is x-forward (pitched down).
+       Images are stamped with camera_optical_frame, as v4l2_camera will do on the robot. -->
+  <xacro:property name="cam_sim" value="${spec.camera.sim}"/>
+  <gazebo reference="${spec.camera.frame}">
+    <sensor name="camera" type="camera">
+      <always_on>true</always_on>
+      <update_rate>${cam_sim.fps}</update_rate>
+      <topic>camera/image_raw</topic>
+      <ignition_frame_id>camera_optical_frame</ignition_frame_id>
+      <camera name="webcam">
+        <horizontal_fov>${cam_sim.horizontal_fov}</horizontal_fov>
+        <image>
+          <width>${cam_sim.width}</width>
+          <height>${cam_sim.height}</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>${cam_sim.clip[0]}</near>
+          <far>${cam_sim.clip[1]}</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>${cam_sim.noise_stddev}</stddev>
+        </noise>
+      </camera>
+    </sensor>
+  </gazebo>
+
   <!-- ===================== ground truth ===================== -->
   <!-- Pose/twist of the model frame (= base_footprint) in the world. Bridged to
        /ground_truth/odom. Not published on /tf, so it cannot fight with the EKF or SLAM. -->

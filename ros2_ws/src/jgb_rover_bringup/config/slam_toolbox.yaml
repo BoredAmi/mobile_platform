@@ -1,0 +1,82 @@
+# slam_toolbox online_async on the visual floor scan. Based on the package's
+# mapper_params_online_async.yaml; changed values are commented.
+slam_toolbox:
+  ros__parameters:
+    use_sim_time: true
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    ceres_dogleg_type: TRADITIONAL_DOGLEG
+    ceres_loss_function: None
+
+    odom_frame: odom                  # published by the EKF
+    map_frame: map
+    base_frame: base_footprint
+    scan_topic: /visual_scan          # camera floor scan, not a lidar
+    use_map_saver: true
+    mode: mapping
+
+    debug_logging: false
+    throttle_scans: 1
+    transform_publish_period: 0.02
+    map_update_interval: 2.0          # was 5.0
+    resolution: 0.03                  # was 0.05 (task requirement)
+    min_laser_range: 0.16             # visual scan range_min is 0.15 (0.16 avoids a float-compare warning)
+    max_laser_range: 2.5              # visual scan range_max; "range_max+" beams clear free space
+    minimum_time_interval: 0.4        # was 0.5; the actual scan-rate limit (see minimum_travel_distance)
+    transform_timeout: 0.2
+    tf_buffer_duration: 30.0
+    stack_size_to_use: 40000000
+    enable_interactive_mode: false    # was true
+
+    # Scan matching is OFF by default (launch arg slam_scan_matching overrides this). Measured on
+    # the apartment tour: with matching the SLAM pose drifted up to 47 deg / 1.9 m and the map had
+    # 10.6 cm RMS wall error and 30 % false walls; without it (scans placed at the EKF poses) 3.5 cm,
+    # 0.03 % and 96 % coverage. The 100 deg x 2.5 m camera scan is too weak for Karto's matcher.
+    # The matching parameters below are tuned for when it is switched on (e.g. on the real robot
+    # with worse odometry).
+    use_scan_matching: false
+    use_scan_barycenter: true
+    # slam_toolbox only lets a scan through after a TRANSLATION of minimum_travel_distance; it
+    # ignores minimum_travel_heading. A diff drive spinning in place does not translate, so with
+    # any distance > 0 the 360 deg look-arounds added nothing to the map (1 graph node after a
+    # full spin). 0 = every scan passes, rate-limited by minimum_time_interval.
+    minimum_travel_distance: 0.0      # was 0.5
+    minimum_travel_heading: 0.2       # was 0.5 (used by Karto's own check)
+    scan_buffer_size: 20              # was 10
+    scan_buffer_maximum_scan_distance: 5.0
+    link_match_minimum_response_fine: 0.3       # was 0.1: reject weak matches of sparse scans
+    link_scan_maximum_distance: 1.5
+    loop_search_maximum_distance: 3.0
+    do_loop_closing: true
+    loop_match_minimum_chain_size: 10
+    loop_match_maximum_variance_coarse: 3.0
+    loop_match_minimum_response_coarse: 0.45    # was 0.35
+    loop_match_minimum_response_fine: 0.55      # was 0.45
+
+    # the EKF odometry is good to ~1 cm / 0.5 deg over minutes: search a small window around it
+    correlation_search_space_dimension: 0.2     # was 0.5
+    correlation_search_space_resolution: 0.01
+    correlation_search_space_smear_deviation: 0.05   # was 0.1
+
+    loop_search_space_dimension: 2.0            # was 8.0
+    loop_search_space_resolution: 0.05
+    loop_search_space_smear_deviation: 0.03
+
+    # The EKF is good to ~2 deg / 6 cm over the whole tour; the 100 deg x 2.5 m camera scan often
+    # sees only a short piece of straight wall, which does not pin the pose down. Karto's penalty
+    # is about 1 - 0.2 * d^2 / variance_penalty (same for the angle), so with the defaults a
+    # 10 cm / 5 deg deviation from odometry costs ~1 % and the pose random-walked along walls
+    # (SLAM error up to 80 deg / 3.8 m while the EKF stayed within 2.6 deg / 9 cm). With 0.001 a
+    # 3 cm or 2 deg deviation already costs ~20 %: the scans refine the EKF, they do not replace it.
+    distance_variance_penalty: 0.001            # was 0.5
+    angle_variance_penalty: 0.001               # was 1.0
+    fine_search_angle_offset: 0.00349
+    coarse_search_angle_offset: 0.105           # was 0.349 (20 deg -> 6 deg)
+    coarse_angle_resolution: 0.0175             # was 0.0349
+    minimum_angle_penalty: 0.3                  # was 0.9: big rotations must really pay
+    minimum_distance_penalty: 0.3               # was 0.5
+    use_response_expansion: false     # was true: widened the rotation search on weak matches (44 deg jumps)
+    min_pass_through: 2
+    occupancy_threshold: 0.1

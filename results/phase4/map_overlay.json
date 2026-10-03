@@ -1,0 +1,12 @@
+{
+  "occupied_cells": 3728,
+  "alignment_dx_m": 0.036000000000000004,
+  "alignment_dy_m": -0.024000000000000007,
+  "alignment_dyaw_deg": -8.945310041616142e-16,
+  "wall_error_rms_m": 0.03527615964412689,
+  "wall_error_median_m": 0.029999999329447746,
+  "wall_error_p90_m": 0.04999999701976776,
+  "wall_error_rms_unaligned_m": 0.04087192565202713,
+  "false_wall_fraction": 0.0002682403433476395,
+  "coverage_of_explored_surfaces": 0.9603945371775418
+}

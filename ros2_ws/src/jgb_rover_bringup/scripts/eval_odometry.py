@@ -7,6 +7,13 @@ closed loop on the ground truth so the robot really drives those shapes. Logs
 final yaw error of both estimates and saves a plot.
 
 Needs bringup_sim.launch.py running. Waits for /imu/data (bias calibration finished) first.
+
+Acceptance (--check):
+  injected  EKF final |yaw error| <= --injected-ratio x wheel-only final |yaw error|
+  nominal   EKF within +--tol-pos-cm position RMSE and +--tol-yaw-deg final |yaw error| of
+            wheel-only. In simulation the wheels have no slip, quantisation or noise, so
+            wheel-only odometry is exact and no fused estimate can be strictly better; the
+            tolerance is the noise floor of the gyro (residual bias after calibration).
 """
 import argparse
 import json
@@ -67,6 +74,23 @@ def evaluate(tracks, t0, t1):
     return out, series
 
 
+def acceptance(results, mode, tol_pos_cm, tol_yaw_deg, injected_ratio):
+    """Return (passed, explanation) for --check mode, or (None, '') for mode 'none'."""
+    w, e = results['wheel'], results['ekf']
+    if mode == 'injected':
+        limit = injected_ratio * abs(w['yaw_final_deg'])
+        ok = abs(e['yaw_final_deg']) <= limit
+        return ok, (f'EKF |yaw| {abs(e["yaw_final_deg"]):.2f} deg <= {injected_ratio:g} x wheel-only '
+                    f'{abs(w["yaw_final_deg"]):.2f} deg = {limit:.2f} deg')
+    if mode == 'nominal':
+        pos_lim = 100 * w['pos_rmse_m'] + tol_pos_cm
+        yaw_lim = abs(w['yaw_final_deg']) + tol_yaw_deg
+        ok = 100 * e['pos_rmse_m'] <= pos_lim and abs(e['yaw_final_deg']) <= yaw_lim
+        return ok, (f'EKF RMSE {100 * e["pos_rmse_m"]:.2f} cm <= {pos_lim:.2f} cm and '
+                    f'|yaw| {abs(e["yaw_final_deg"]):.2f} deg <= {yaw_lim:.2f} deg')
+    return None, ''
+
+
 def plot(series, results, title, path):
     fig, ax = plt.subplots(1, 3, figsize=(16, 5.2))
     xg, yg = series['gt']
@@ -109,6 +133,11 @@ def main():
     ap.add_argument('--fig8-radius', type=float, default=0.5)
     ap.add_argument('--label', default='run', help='name used in the output files and the plot title')
     ap.add_argument('--out-dir', default='.')
+    ap.add_argument('--check', choices=('none', 'injected', 'nominal'), default='none',
+                    help='print the acceptance result for this kind of run')
+    ap.add_argument('--tol-pos-cm', type=float, default=1.0)
+    ap.add_argument('--tol-yaw-deg', type=float, default=1.0)
+    ap.add_argument('--injected-ratio', type=float, default=0.25)
     args = ap.parse_args()
 
     rclpy.init()
@@ -143,6 +172,9 @@ def main():
         print(f'{LABELS[k]:18s} {100 * r["pos_rmse_m"]:8.2f}cm {100 * r["pos_max_m"]:8.2f}cm '
               f'{100 * r["pos_final_m"]:8.2f}cm {r["yaw_final_deg"]:+8.2f}deg {r["yaw_rmse_deg"]:8.2f}deg')
     print(f'plot: {png}')
+    ok, why = acceptance(results, args.check, args.tol_pos_cm, args.tol_yaw_deg, args.injected_ratio)
+    if ok is not None:
+        print(f'ACCEPTANCE ({args.check}): {"PASS" if ok else "FAIL"}  {why}')
     with open(os.path.join(args.out_dir, f'eval_odometry_{args.label}.json'), 'w') as f:
         json.dump(results, f, indent=2)
     h.destroy_node()

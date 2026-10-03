@@ -24,7 +24,9 @@ def launch_setup(context):
     world = LaunchConfiguration('world').perform(context)
     world_path = world if world.endswith('.sdf') else os.path.join(gz_share, 'worlds', f'{world}.sdf')
     headless = LaunchConfiguration('headless').perform(context).lower() in ('true', '1')
-    gz_args = f'-r {"-s --headless-rendering " if headless else ""}{world_path}'
+    egl = LaunchConfiguration('headless_rendering').perform(context).lower() in ('true', '1')
+    server_flags = ('-s --headless-rendering ' if egl else '-s ') if headless else ''
+    gz_args = f'-r {server_flags}{world_path}'
 
     controllers_template = LaunchConfiguration('controllers_file').perform(context) or os.path.join(
         get_package_share_directory('jgb_rover_control'), 'config', 'controllers.yaml')
@@ -74,6 +76,8 @@ def generate_launch_description():
         DeclareLaunchArgument('world', default_value='apartment',
                               description='World name in jgb_rover_gazebo/worlds or a path to an .sdf'),
         DeclareLaunchArgument('headless', default_value='false', description='Run the server only, no GUI'),
+        DeclareLaunchArgument('headless_rendering', default_value='false',
+                              description='With headless:=true, render with EGL (no X display needed)'),
         DeclareLaunchArgument('camera_pitch', default_value='',
                               description='Camera pitch down [rad]; empty = robot_spec.yaml default'),
         DeclareLaunchArgument('inject_errors', default_value='false',

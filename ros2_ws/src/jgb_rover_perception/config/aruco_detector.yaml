@@ -1,0 +1,16 @@
+# aruco_detector: ArUco landmarks (DICT_4X4_50, 0.10 m) and a mapping-quality check.
+aruco_detector:
+  ros__parameters:
+    image_topic: /camera/image_raw
+    camera_info_topic: /camera/camera_info
+    poses_topic: /aruco/poses
+    dictionary: DICT_4X4_50
+    marker_size: 0.10                 # m, black square edge
+    max_rate: 10.0                    # Hz
+    publish_tf: true
+    frame_prefix: aruco_
+    max_distance: 3.0                 # m
+    map_frame: map
+    ground_truth_file: ''             # set by the sim launch to the world layout yaml
+    spawn_pose: [0.0, 0.0, 0.0]       # world pose of the map origin (robot spawn)
+    report_period: 10.0               # s

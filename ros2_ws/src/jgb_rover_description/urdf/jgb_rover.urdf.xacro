@@ -179,8 +179,9 @@
        camera_pitch (positive pitch about +Y tilts +X down, REP-103). -->
   <link name="${spec.camera.frame}">
     <visual>
-      <!-- webcam.stl is in base_footprint coordinates, modelled at mesh_cad_pitch -->
-      <origin xyz="${-cam_xyz[0]} ${-cam_xyz[1]} ${-cam_xyz[2]}" rpy="0 ${-sim.camera.mesh_cad_pitch} 0"/>
+      <!-- webcam.stl is in base_footprint coordinates, modelled at mesh_cad_pitch; moved back by
+           mesh_clearance so the simulated lens is not inside its own housing -->
+      <origin xyz="${-cam_xyz[0] - sim.camera.mesh_clearance} ${-cam_xyz[1]} ${-cam_xyz[2]}" rpy="0 ${-sim.camera.mesh_cad_pitch} 0"/>
       <geometry><mesh filename="${mesh_dir}/webcam.stl"/></geometry>
       <material name="webcam_material"><color rgba="0.05 0.05 0.05 1"/></material>
     </visual>

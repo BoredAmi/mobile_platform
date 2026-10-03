@@ -20,6 +20,10 @@ camera:
   # webcam.stl was modelled with the camera level (pitch 0); its visual is attached to
   # camera_link so it follows the camera_pitch argument.
   mesh_cad_pitch: 0.0
+  # The lens centre (robot_spec camera.origin) lies 2 mm inside webcam.stl. A simulated camera
+  # inside its own housing mesh makes Ogre2 render empty frames at some headings (18 % of frames
+  # while spinning). The webcam VISUAL is moved back by this much; camera pose and TF unchanged.
+  mesh_clearance: 0.005
 
 error_injection:
   # Applied only when the xacro arg inject_errors:=true. Physically shrinks the left

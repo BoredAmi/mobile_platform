@@ -18,6 +18,10 @@ def as_bool(context, name) -> bool:
     return LaunchConfiguration(name).perform(context).lower() in ('true', '1', 'yes')
 
 
+def world_is_apartment(context) -> bool:
+    return LaunchConfiguration('world').perform(context) in ('apartment', 'apartment_slip')
+
+
 def launch_setup(context):
     loc_share = get_package_share_directory('jgb_rover_localization')
 
@@ -25,7 +29,7 @@ def launch_setup(context):
         PythonLaunchDescriptionSource(os.path.join(
             get_package_share_directory('jgb_rover_gazebo'), 'launch', 'sim.launch.py')),
         launch_arguments={k: LaunchConfiguration(k) for k in
-                          ('world', 'headless', 'camera_pitch', 'inject_errors')}.items())
+                          ('world', 'headless', 'headless_rendering', 'camera_pitch', 'inject_errors', 'x', 'y', 'yaw')}.items())
 
     imu_bias = Node(
         package='jgb_rover_localization', executable='imu_bias_calibration', output='screen',
@@ -41,7 +45,29 @@ def launch_setup(context):
         package='robot_localization', executable='ekf_node', name='ekf_filter_node', output='screen',
         parameters=[os.path.join(loc_share, 'config', 'ekf.yaml'), ekf_overrides])
 
-    return [sim, imu_bias, ekf]
+    actions = [sim, imu_bias, ekf]
+    if as_bool(context, 'perception'):
+        per_share = get_package_share_directory('jgb_rover_perception')
+        actions.append(Node(
+            package='jgb_rover_perception', executable='visual_floor_scan', output='screen',
+            parameters=[os.path.join(per_share, 'config', 'visual_floor_scan.yaml'), {'use_sim_time': True}]))
+    if as_bool(context, 'aruco'):
+        per_share = get_package_share_directory('jgb_rover_perception')
+        layout = os.path.join(get_package_share_directory('jgb_rover_gazebo'), 'config', 'apartment_layout.yaml')
+        spawn = [float(LaunchConfiguration(k).perform(context)) for k in ('x', 'y', 'yaw')]
+        actions.append(Node(
+            package='jgb_rover_perception', executable='aruco_detector', output='screen',
+            parameters=[os.path.join(per_share, 'config', 'aruco_detector.yaml'),
+                        {'use_sim_time': True, 'spawn_pose': spawn,
+                         'ground_truth_file': layout if world_is_apartment(context) else ''}]))
+    if as_bool(context, 'slam'):
+        slam_params = LaunchConfiguration('slam_params_file').perform(context) or os.path.join(
+            get_package_share_directory('jgb_rover_bringup'), 'config', 'slam_toolbox.yaml')
+        actions.append(Node(
+            package='slam_toolbox', executable='async_slam_toolbox_node', name='slam_toolbox', output='screen',
+            parameters=[slam_params, {'use_sim_time': True,
+                                      'use_scan_matching': as_bool(context, 'slam_scan_matching')}]))
+    return actions
 
 
 def generate_launch_description():
@@ -49,12 +75,24 @@ def generate_launch_description():
         DeclareLaunchArgument('world', default_value='apartment',
                               description='apartment | apartment_slip | path to .sdf'),
         DeclareLaunchArgument('headless', default_value='false'),
+        DeclareLaunchArgument('headless_rendering', default_value='false',
+                              description='EGL rendering for machines without a display'),
         DeclareLaunchArgument('camera_pitch', default_value='',
                               description='rad down; empty = robot_spec.yaml (0.26)'),
         DeclareLaunchArgument('inject_errors', default_value='false',
                               description='left wheel 1.5 % smaller (sim_assumptions.yaml)'),
         DeclareLaunchArgument('ekf_imu_accel', default_value='false',
                               description='also fuse IMU forward acceleration in the EKF'),
+        DeclareLaunchArgument('perception', default_value='true', description='visual floor scan'),
+        DeclareLaunchArgument('slam', default_value='true', description='slam_toolbox on /visual_scan'),
+        DeclareLaunchArgument('slam_params_file', default_value='',
+                              description='slam_toolbox params; empty = jgb_rover_bringup/config/slam_toolbox.yaml'),
+        DeclareLaunchArgument('slam_scan_matching', default_value='false',
+                              description='let slam_toolbox correct the EKF pose by scan matching (see README)'),
+        DeclareLaunchArgument('aruco', default_value='false', description='ArUco landmark detector + map check'),
+        DeclareLaunchArgument('x', default_value='0.0'),
+        DeclareLaunchArgument('y', default_value='0.0'),
+        DeclareLaunchArgument('yaw', default_value='0.0'),
         SetEnvironmentVariable('PYTHONNOUSERSITE', '1'),
         OpaqueFunction(function=launch_setup),
     ])
