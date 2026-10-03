@@ -1,0 +1,23 @@
+# imu_bias_calibration node. "$(spec <key>)" values come from robot_spec.yaml (rendered at launch).
+imu_bias_calibration:
+  ros__parameters:
+    imu_in: /imu/data_raw
+    imu_out: /imu/data
+    cmd_vel_topic: /cmd_vel
+    cmd_vel_stamped: true
+    wheel_odom_topic: /wheel/odom     # '' disables the wheel stillness check
+    calibration_duration: 3.0         # s of stillness to average
+    min_samples: 100
+    cmd_vel_timeout: 0.5              # s, a command older than this counts as zero
+    cmd_zero_threshold: 0.001
+    wheel_still_threshold: 0.005
+    max_gyro_stddev: 0.02             # rad/s, larger = robot being moved, retry
+    publish_before_calibrated: false
+    gyro_stddev: $(spec imu.sim_noise.gyro_stddev)
+    accel_stddev: $(spec imu.sim_noise.accel_stddev)
+    frame_id: ''                      # '' = keep the driver's frame (imu_link)
+    # zero-velocity update: keep refining the bias whenever the robot stands still
+    zupt_enabled: true
+    zupt_settle_time: 0.3             # s with zero command and still wheels before samples count
+    zupt_max_samples: 6000            # running-mean memory (60 s at 100 Hz)
+    zupt_max_rate: 0.05               # rad/s, larger deviation = robot being moved, sample ignored

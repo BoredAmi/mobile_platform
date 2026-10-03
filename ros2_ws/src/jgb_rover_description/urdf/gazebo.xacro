@@ -20,7 +20,7 @@
   <xacro:property name="controllers_file" value="$(arg controllers_file)"/>
   <xacro:if value="${controllers_file != ''}">
     <gazebo>
-      <plugin filename="libign_ros2_control-system.so" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+      <plugin filename="libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
         <parameters>${controllers_file}</parameters>
         <ros>
           <remapping>/diff_drive_controller/cmd_vel:=/cmd_vel</remapping>
@@ -29,6 +29,41 @@
       </plugin>
     </gazebo>
   </xacro:if>
+
+  <!-- ===================== IMU (MPU6050) ===================== -->
+  <!-- 6-axis, no magnetometer: orientation output disabled; downstream treats it as unknown.
+       Gyro bias: gz-sensors draws it once from N(bias_mean, bias_stddev) and gives it a random
+       sign per axis, so the startup calibration node has something real to remove. -->
+  <xacro:property name="imu_n" value="${spec.imu.sim_noise}"/>
+  <xacro:macro name="imu_noise" params="stddev bias_mean bias_stddev">
+    <noise type="gaussian">
+      <mean>0.0</mean>
+      <stddev>${stddev}</stddev>
+      <bias_mean>${bias_mean}</bias_mean>
+      <bias_stddev>${bias_stddev}</bias_stddev>
+    </noise>
+  </xacro:macro>
+  <gazebo reference="${spec.imu.frame}">
+    <sensor name="imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>${spec.imu.rate_hz}</update_rate>
+      <topic>imu/data_raw</topic>
+      <ignition_frame_id>${spec.imu.frame}</ignition_frame_id>
+      <imu>
+        <enable_orientation>false</enable_orientation>
+        <angular_velocity>
+          <x><xacro:imu_noise stddev="${imu_n.gyro_stddev}" bias_mean="${imu_n.gyro_bias_mean}" bias_stddev="${imu_n.gyro_bias_stddev}"/></x>
+          <y><xacro:imu_noise stddev="${imu_n.gyro_stddev}" bias_mean="${imu_n.gyro_bias_mean}" bias_stddev="${imu_n.gyro_bias_stddev}"/></y>
+          <z><xacro:imu_noise stddev="${imu_n.gyro_stddev}" bias_mean="${imu_n.gyro_bias_mean}" bias_stddev="${imu_n.gyro_bias_stddev}"/></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><xacro:imu_noise stddev="${imu_n.accel_stddev}" bias_mean="0.0" bias_stddev="${imu_n.accel_bias_stddev}"/></x>
+          <y><xacro:imu_noise stddev="${imu_n.accel_stddev}" bias_mean="0.0" bias_stddev="${imu_n.accel_bias_stddev}"/></y>
+          <z><xacro:imu_noise stddev="${imu_n.accel_stddev}" bias_mean="0.0" bias_stddev="${imu_n.accel_bias_stddev}"/></z>
+        </linear_acceleration>
+      </imu>
+    </sensor>
+  </gazebo>
 
   <!-- ===================== ground truth ===================== -->
   <!-- Pose/twist of the model frame (= base_footprint) in the world. Bridged to

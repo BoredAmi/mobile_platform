@@ -18,7 +18,7 @@
   <ros2_control name="jgb_rover_system" type="system">
     <hardware>
       <xacro:if value="$(arg sim_gazebo)">
-        <plugin>ign_ros2_control/IgnitionSystem</plugin>
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
       </xacro:if>
       <xacro:unless value="$(arg sim_gazebo)">
         <!-- real robot: custom hardware interface talking to the ESP32/Teensy (not written yet) -->

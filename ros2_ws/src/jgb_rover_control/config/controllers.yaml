@@ -31,7 +31,7 @@ diff_drive_controller:
     publish_rate: 50.0
     open_loop: false
     position_feedback: true        # integrate wheel positions (encoders), not commanded speed
-    velocity_rolling_window_size: 10
+    velocity_rolling_window_size: 2   # samples @100 Hz; 10 delayed the twist ~50 ms and the EKF (which integrates it) lagged 1 cm
 
     # Covariances of the published odometry (order x, y, z, roll, pitch, yaw).
     # Pose: integrated, so only used for display. Twist: what the EKF fuses.

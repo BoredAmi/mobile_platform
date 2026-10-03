@@ -7,7 +7,7 @@ find_package(ament_cmake_python REQUIRED)
 ament_python_install_package(${PROJECT_NAME})
 
 install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
-file(GLOB SCRIPTS scripts/*.py)
+file(GLOB SCRIPTS CONFIGURE_DEPENDS scripts/*.py)
 install(PROGRAMS ${SCRIPTS} DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

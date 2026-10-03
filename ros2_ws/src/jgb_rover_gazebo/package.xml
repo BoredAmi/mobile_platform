@@ -16,7 +16,7 @@
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>xacro</exec_depend>
   <exec_depend>jgb_rover_control</exec_depend>
-  <exec_depend>ign_ros2_control</exec_depend>
+  <exec_depend>gz_ros2_control</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
