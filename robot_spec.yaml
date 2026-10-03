@@ -1,0 +1,109 @@
+# Robot spec for simulation - generated from the CAD model (all SI units: m, kg, rad, s).
+# Frames follow REP-103/105: x forward, y left, z up.
+# base_footprint = ground point under the centre of the drive axle.
+# All meshes in meshes/ are in METRES and expressed in base_footprint unless noted.
+
+robot_name: jgb_rover          # rename freely
+
+base_link:
+  origin_in_base_footprint: [0.0, 0.0, 0.0435]   # on the drive-wheel axis, centred between wheels
+
+footprint:                       # printed body outline (top view), for nav / costmaps
+  length_x: 0.240
+  width_y: 0.210
+  overall_width_incl_wheels: 0.310
+  height_to_camera_top: 0.276
+  min_ground_clearance: 0.0155   # under the motor bracket plates
+
+drive:
+  type: differential
+  wheel_radius: 0.0435           # nominal incl. studs; effective rolling radius is probably ~0.042, calibrate
+  wheel_width: 0.040
+  wheel_separation: 0.270        # wheel centre to wheel centre
+  left_wheel_centre:  [0.0,  0.135, 0.0435]   # in base_footprint
+  right_wheel_centre: [0.0, -0.135, 0.0435]
+  wheel_mass_estimate: 0.08      # each, estimate - weigh the real one
+  wheel_joint_axis: [0, 1, 0]    # mesh drive_wheel.stl is centred on the wheel, spin axis = Y
+  motor: JGB37-520, 12 V, 1:90 gearbox
+  no_load_speed: 11.52           # rad/s (110 rpm)
+  rated_speed: 8.90              # rad/s (85 rpm) at rated torque
+  rated_torque: 0.294            # N m (3.0 kg cm)
+  stall_torque: 1.18             # N m (12 kg cm), use as joint effort limit
+  max_linear_speed_no_load: 0.50 # m/s
+  suggested_limits: {linear: 0.40, angular: 2.0, linear_accel: 1.0, angular_accel: 4.0}
+
+encoders:                        # AB Hall encoder on the motor shaft, before the gearbox
+  ppr_motor_shaft: 11
+  gear_ratio: 90
+  pulses_per_output_rev_one_channel: 990
+  counts_per_output_rev_x4: 3960
+  resolution_rad_x4: 0.001587
+  wheel_travel_per_count_x4_m: 0.0000690
+
+casters:                         # 2" swivel casters, Ø50 x 22 wheel, swivel lead ~22 mm (estimated)
+  front_swivel_axis_xy: [ 0.085, 0.0]
+  rear_swivel_axis_xy:  [-0.085, 0.0]
+  wheel_radius: 0.025
+  sim_model: frictionless sphere r=0.025 centred at (x, 0, 0.025)  # simple and stable
+  mass_each_estimate: 0.065
+  # NOTE 2 drive wheels + 2 casters = 4 contacts on a rigid body; fine on a flat sim floor.
+
+imu:                             # MPU6050 on a GY-521 board, 6-axis, NO magnetometer
+  frame: imu_link
+  origin_in_base_footprint: [0.0, -0.040, 0.200]   # on the deck, -Y half, above the COM
+  rpy: [0, 0, 0]                 # mount the real board with its X arrow forward, Z up
+  rate_hz: 100
+  gyro_range_dps: 250
+  accel_range_g: 2
+  sim_noise:                     # roughly MPU6050 datasheet + typical cheap-board bias
+    gyro_stddev: 0.0009          # rad/s
+    gyro_bias_mean: 0.003        # rad/s - deliberately non-zero so startup bias calibration is exercised
+    gyro_bias_stddev: 0.002
+    accel_stddev: 0.03           # m/s^2
+    accel_bias_stddev: 0.05
+
+camera:                          # Tracer WEB007 USB webcam
+  frame: camera_link             # optical frame: camera_optical_frame, rpy (-pi/2, 0, -pi/2) from camera_link
+  origin_in_base_footprint: [0.113, 0.0, 0.2605]   # lens centre
+  pitch_down_default: 0.26       # rad (15 deg), make it a launch / xacro argument; clip hinge allows it
+  real_spec: {resolution: 1920x1080, fps: 30, fov_deg: {h: 100, v: 90, diag: 120}, focus: manual, mass: 0.113}
+  sim: {width: 640, height: 480, fps: 30, horizontal_fov: 1.745, noise_stddev: 0.007, clip: [0.05, 10.0]}
+  closest_visible_floor_at_15deg_tilt: 0.15   # m in front of the lens
+
+mass_properties:                 # whole body EXCEPT the two drive wheels; use as base_link inertial
+  total_mass: 4.682
+  com_in_base_footprint: [0.0030, -0.0001, 0.1200]
+  inertia_about_com: {ixx: 0.01855, iyy: 0.02307, izz: 0.01968, ixy: 0.0, ixz: -0.00163, iyz: 0.00005}
+  breakdown_kg:
+    printed_body_estimate: 0.549
+    battery_12V_12Ah: 3.240      # 152 x 99 x 94 (100 with terminals), centred at (0, 0, 0.123)
+    drive_units_each: 0.200      # motor 158 g + bracket + coupler
+    casters_each: 0.065
+    webcam: 0.113
+    breadboard_and_electronics_estimate: 0.250
+
+collision_suggestion:            # simple primitives in base_footprint
+  - {name: lower_body, box: [0.240, 0.210, 0.106], centre: [0.0, 0.0, 0.123]}   # tray + battery, z 0.070-0.176
+  - {name: upper_body, box: [0.220, 0.140, 0.100], centre: [0.0, 0.0, 0.226]}   # legs, deck, camera, z 0.176-0.276
+  - {name: drive_unit_left,  box: [0.068, 0.087, 0.055], centre: [0.0,  0.0885, 0.043]}
+  - {name: drive_unit_right, box: [0.068, 0.087, 0.055], centre: [0.0, -0.0885, 0.043]}
+  - {name: wheels, cylinder: {radius: 0.0435, length: 0.040}}
+
+meshes:                          # visual only, metres
+  chassis_printed.stl: base_footprint   # base tray, deck, 4 legs, webcam mount
+  battery.stl: base_footprint
+  breadboard.stl: base_footprint
+  webcam.stl: base_footprint
+  drive_unit_left.stl: base_footprint   # motor + bracket + coupler, static
+  drive_unit_right.stl: base_footprint
+  caster_front.stl: base_footprint      # static visual (swivel not modelled)
+  caster_rear.stl: base_footprint
+  drive_wheel.stl: wheel frame (origin at wheel centre, spin axis Y)
+
+real_hardware_later:             # context only - not part of the simulation task
+  computer: Raspberry Pi 4B 8GB (runs ROS 2)
+  microcontrollers_available: [Teensy 4.1 x2, ESP32 (several)]
+  imu_bus: I2C (GY-521, address 0x68) to the microcontroller
+  encoders: A/B to microcontroller interrupt pins
+  camera: USB to the Raspberry Pi
+  battery: 12 V 12 Ah AGM
