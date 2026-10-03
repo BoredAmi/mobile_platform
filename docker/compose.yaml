@@ -1,0 +1,39 @@
+# Usage (from the repository root):
+#   xhost +local:docker                       # allow the container to open windows (once per login)
+#   docker compose -f docker/compose.yaml build
+#   docker compose -f docker/compose.yaml run --rm dev    # shell; then: build_ws && source ...
+name: jgb_rover                 # own compose project (the folder name "docker" is shared by other projects)
+
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        USER_UID: ${UID:-1000}
+        USER_GID: ${GID:-1000}
+    image: jgb_rover:humble
+    network_mode: host          # ROS 2 discovery with the host (and later the robot)
+    ipc: host
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+    volumes:
+      - ..:/home/dev/mobile
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - colcon:/home/dev/colcon
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    stdin_open: true
+    tty: true
+
+volumes:
+  colcon:

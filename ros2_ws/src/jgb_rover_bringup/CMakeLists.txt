@@ -6,7 +6,7 @@ find_package(ament_cmake_python REQUIRED)
 
 ament_python_install_package(${PROJECT_NAME})
 
-install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY launch config rviz DESTINATION share/${PROJECT_NAME})
 file(GLOB SCRIPTS CONFIGURE_DEPENDS scripts/*.py)
 install(PROGRAMS ${SCRIPTS} DESTINATION lib/${PROJECT_NAME})
 

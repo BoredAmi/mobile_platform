@@ -27,8 +27,9 @@ class GroundLUT:
 
     @staticmethod
     def build(K: np.ndarray, src_size, proc_size, R_base_cam: np.ndarray, t_base_cam: np.ndarray,
-              t_base_scan: np.ndarray, yaw_base_scan: float = 0.0) -> 'GroundLUT':
+              t_base_scan: np.ndarray, yaw_base_scan: float = 0.0, D: np.ndarray = None) -> 'GroundLUT':
         """K: 3x3 intrinsics of the source image (src_size = (w, h)); proc_size = (w, h).
+        D: distortion coefficients (plumb_bob / OpenCV order) of the raw image; None/zeros = none.
         R/t_base_cam: camera optical frame pose in the base frame (z up, floor at z = 0).
         t_base_scan / yaw_base_scan: scan frame pose in the base frame (assumed level)."""
         sw, sh = src_size
@@ -38,7 +39,13 @@ class GroundLUT:
         u = (np.arange(pw, dtype=np.float64) + 0.5) * sx - 0.5
         v = (np.arange(ph, dtype=np.float64) + 0.5) * sy - 0.5
         uu, vv = np.meshgrid(u, v)
-        rays = np.stack([(uu - K[0, 2]) / K[0, 0], (vv - K[1, 2]) / K[1, 1], np.ones_like(uu)], axis=-1)
+        if D is not None and np.any(np.asarray(D) != 0):
+            pts = np.stack([uu.ravel(), vv.ravel()], axis=-1).reshape(-1, 1, 2)
+            norm = cv2.undistortPoints(pts, K, np.asarray(D, np.float64)).reshape(ph, pw, 2)
+            xn, yn = norm[..., 0], norm[..., 1]
+        else:
+            xn, yn = (uu - K[0, 2]) / K[0, 0], (vv - K[1, 2]) / K[1, 1]
+        rays = np.stack([xn, yn, np.ones_like(uu)], axis=-1)
         d = rays @ R_base_cam.T                         # ray directions in the base frame
         dz = d[..., 2]
         hits = dz < -1e-6

@@ -54,3 +54,15 @@ def test_column_walk_and_scan():
     # the left side of the image is +y (positive bearing): obstacles must be at positive angles
     angles = geo.angle_min + geo.increment * np.nonzero(np.isfinite(ranges))[0]
     assert (angles > 0).all()
+
+
+def test_distortion_zero_equals_pinhole_and_barrel_moves_edge_rays():
+    R, t = camera(0.26, 0.2605)
+    w, h = 64, 48
+    K = K_of(w, h, 1.745)
+    plain = GroundLUT.build(K, (w, h), (w, h), R, t, np.zeros(3))
+    zeros = GroundLUT.build(K, (w, h), (w, h), R, t, np.zeros(3), D=np.zeros(5))
+    assert np.allclose(plain.rng[np.isfinite(plain.rng)], zeros.rng[np.isfinite(zeros.rng)])
+    barrel = GroundLUT.build(K, (w, h), (w, h), R, t, np.zeros(3), D=np.array([-0.3, 0.1, 0, 0, 0]))
+    # barrel distortion: a raw corner pixel really looks further out than the pinhole model says
+    assert abs(barrel.bearing[h - 1, 0]) > abs(plain.bearing[h - 1, 0])

@@ -80,6 +80,7 @@ class VisualFloorScan(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.K = None
+        self.D = None
         self.src_size = None
         self.lut = None
         self.lut_key = None
@@ -100,6 +101,7 @@ class VisualFloorScan(Node):
         if K[0, 0] <= 0:
             return
         self.K = K
+        self.D = np.array(msg.d, dtype=np.float64) if len(msg.d) else None
         self.src_size = (msg.width, msg.height)
 
     def camera_pose(self, frame_id: str):
@@ -125,10 +127,10 @@ class VisualFloorScan(Node):
             return False
         R, t, ts, yaw = pose
         key = (np.round(R, 5).tobytes(), np.round(t, 4).tobytes(), np.round(ts, 4).tobytes(),
-               round(yaw, 4), self.K.tobytes(), self.src_size)
+               round(yaw, 4), self.K.tobytes(), None if self.D is None else self.D.tobytes(), self.src_size)
         if key == self.lut_key:
             return True
-        self.lut = GroundLUT.build(self.K, self.src_size, (self.proc_w, self.proc_h), R, t, ts, yaw)
+        self.lut = GroundLUT.build(self.K, self.src_size, (self.proc_w, self.proc_h), R, t, ts, yaw, self.D)
         self.lut_key = key
         hfov = self.hfov or 2.0 * np.arctan(self.src_size[0] / (2.0 * self.K[0, 0]))
         self.geo = ScanGeometry(-hfov / 2, hfov / 2, self.num_beams, self.range_min, self.range_max)

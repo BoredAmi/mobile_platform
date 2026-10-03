@@ -1,4 +1,5 @@
-"""Full simulation bringup for jgb_rover.
+"""Full simulation bringup for jgb_rover: Gazebo, ros2_control, IMU bias calibration, EKF,
+visual floor scan, slam_toolbox, optional ArUco check, path recorder and RViz.
 
   ros2 launch jgb_rover_bringup bringup_sim.launch.py world:=apartment camera_pitch:=0.26 \
       slam:=true rviz:=true inject_errors:=false
@@ -51,10 +52,18 @@ def launch_setup(context):
         actions.append(Node(
             package='jgb_rover_perception', executable='visual_floor_scan', output='screen',
             parameters=[os.path.join(per_share, 'config', 'visual_floor_scan.yaml'), {'use_sim_time': True}]))
+    spawn = [float(LaunchConfiguration(k).perform(context)) for k in ('x', 'y', 'yaw')]
+    actions.append(Node(
+        package='jgb_rover_bringup', executable='path_recorder.py', output='screen',
+        parameters=[{'use_sim_time': True, 'spawn_pose': spawn}]))
+    if as_bool(context, 'rviz'):
+        actions.append(Node(
+            package='rviz2', executable='rviz2', output='screen',
+            arguments=['-d', os.path.join(get_package_share_directory('jgb_rover_bringup'), 'rviz', 'sim.rviz')],
+            parameters=[{'use_sim_time': True}]))
     if as_bool(context, 'aruco'):
         per_share = get_package_share_directory('jgb_rover_perception')
         layout = os.path.join(get_package_share_directory('jgb_rover_gazebo'), 'config', 'apartment_layout.yaml')
-        spawn = [float(LaunchConfiguration(k).perform(context)) for k in ('x', 'y', 'yaw')]
         actions.append(Node(
             package='jgb_rover_perception', executable='aruco_detector', output='screen',
             parameters=[os.path.join(per_share, 'config', 'aruco_detector.yaml'),
@@ -89,6 +98,7 @@ def generate_launch_description():
                               description='slam_toolbox params; empty = jgb_rover_bringup/config/slam_toolbox.yaml'),
         DeclareLaunchArgument('slam_scan_matching', default_value='false',
                               description='let slam_toolbox correct the EKF pose by scan matching (see README)'),
+        DeclareLaunchArgument('rviz', default_value='true', description='RViz with map, scan, paths, debug image'),
         DeclareLaunchArgument('aruco', default_value='false', description='ArUco landmark detector + map check'),
         DeclareLaunchArgument('x', default_value='0.0'),
         DeclareLaunchArgument('y', default_value='0.0'),
