@@ -1,0 +1,19 @@
+{
+  "known_cells": 1960,
+  "area_m2": 19.600000000000005,
+  "samples": 614,
+  "error_rms_c": 0.28741945249482065,
+  "error_median_abs_c": 0.05956449066159841,
+  "error_p90_abs_c": 0.4699080953642278,
+  "error_mean_c": 0.015227503245826656,
+  "true_range_c": [
+    17.127912578785825,
+    25.984691322809446
+  ],
+  "measured_range_c": [
+    18.365079879760742,
+    25.23093032836914
+  ],
+  "warmest_spot_offset_m": 0.2,
+  "coldest_spot_offset_m": 0.2
+}

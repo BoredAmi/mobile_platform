@@ -70,6 +70,20 @@ camera:                          # Tracer WEB007 USB webcam
   sim: {width: 640, height: 480, fps: 30, horizontal_fov: 1.745, noise_stddev: 0.007, clip: [0.05, 10.0]}
   closest_visible_floor_at_15deg_tilt: 0.15   # m in front of the lens
 
+temperature_sensor:              # Adafruit 1782 breakout, MCP9808 (I2C), ambient air temperature
+  frame: temp_sensor_link
+  origin_in_base_footprint: [-0.100, 0.060, 0.215]   # PLACEHOLDER: rear of the deck, +Y half, on a
+                                                     # ~15 mm standoff; measure on the robot. Keep it
+                                                     # away from the Pi, motor drivers and battery.
+  i2c_bus: 1                     # Raspberry Pi I2C1: SDA GPIO2 (pin 3), SCL GPIO3 (pin 5), 3V3 (pin 1)
+  i2c_address: 0x18              # A0-A2 low (default)
+  resolution_c: 0.0625           # register 0x08 = 0x03
+  accuracy_c: 0.25               # typical, -20..100 C (datasheet; max 0.5)
+  conversion_time_s: 0.25        # at 0.0625 C resolution
+  rate_hz: 2.0                   # publish rate, below 1 / conversion_time
+  time_constant_s: 6.0           # ESTIMATE: first-order lag of the board in air on the moving robot;
+                                 # measure (warm-to-cool step, time to 63 %)
+
 mass_properties:                 # whole body EXCEPT the two drive wheels; use as base_link inertial
   total_mass: 4.682
   com_in_base_footprint: [0.0030, -0.0001, 0.1200]
@@ -106,4 +120,5 @@ real_hardware_later:             # context only - not part of the simulation tas
   imu_bus: I2C (GY-521, address 0x68) to the microcontroller
   encoders: A/B to microcontroller interrupt pins
   camera: USB to the Raspberry Pi
+  temperature_sensor: I2C (MCP9808, address 0x18) directly to the Raspberry Pi
   battery: 12 V 12 Ah AGM

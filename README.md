@@ -1,12 +1,13 @@
 # jgb_rover: Gazebo simulation with IMU + encoder fusion and camera-based mapping
 
 Simulation of a differential-drive rover (2 driven wheels, 2 swivel casters, MPU6050 IMU, one USB
-webcam) in Gazebo, with:
+webcam, MCP9808 temperature sensor) in Gazebo, with:
 
 - `ros2_control` diff drive (`/cmd_vel` → wheels → `/wheel/odom`)
 - startup gyro-bias calibration and a `robot_localization` EKF (wheel odometry + gyro → `odom → base_footprint`)
 - a **visual floor scan**: the monocular camera turned into a `LaserScan` using the flat-floor assumption
 - `slam_toolbox` building a 2D map from that scan, plus an ArUco marker check of the map
+- a **temperature heatmap**: an MCP9808 point sensor (Adafruit 1782) mapped into the SLAM map as it drives
 - evaluation scripts with measured results for every stage
 
 Every interface uses the topic names and message types the real drivers will use, so the
@@ -123,6 +124,7 @@ the gyro start after that.
 | `slam_params_file`   | (package)   | alternative `slam_toolbox` parameter file |
 | `perception`         | `true`      | visual floor scan |
 | `aruco`              | `false`     | ArUco detector and map-quality check |
+| `temperature`        | `true`      | simulated MCP9808 and the temperature heatmap (`/temperature_map`) |
 | `ekf_imu_accel`      | `false`     | also fuse IMU forward acceleration ([tested](#measured-results), no gain) |
 | `rviz`               | `true`      | RViz: robot, TF, map, scan, EKF vs ground-truth path, debug image |
 | `headless`           | `false`     | Gazebo server only, no Gazebo GUI |
@@ -149,6 +151,18 @@ ros2 run nav2_map_server map_saver_cli -f my_map --ros-args -p use_sim_time:=tru
 
 The default 2 s timeout is too short once the map has a few hundred scans.
 
+### Saving the temperature heatmap
+
+```bash
+ros2 param set /temperature_mapper output_dir $PWD/my_heatmap     # optional, default ~/.ros/temperature_map
+ros2 service call /temperature_mapper/save std_srvs/srv/Trigger
+```
+
+Writes `temperature_heatmap.png` (heatmap over the SLAM map, sample positions as dots, colour bar),
+`temperature_heatmap.npz` (grid, origin, resolution, samples) and `temperature_samples.csv`
+(`t, x, y` in the map frame, lag-compensated temperature, raw reading). In RViz the heatmap is the
+*Temperature* display (blue = coldest, red = warmest; the range is written above the map).
+
 ### Test and evaluation scripts
 
 All need the simulation running (except the first two) and print their result; most save a plot.
@@ -157,12 +171,14 @@ All need the simulation running (except the first two) and print their result; m
 |---------|----------------|
 | `ros2 run jgb_rover_description check_alignment.py` | visual meshes vs collision primitives (bounding boxes) |
 | `PYTHONNOUSERSITE=1 python3 -m pytest ros2_ws/src/jgb_rover_perception/test` | floor-scan geometry unit tests |
+| `PYTHONNOUSERSITE=1 python3 -m pytest ros2_ws/src/jgb_rover_temperature/test` | MCP9808 conversion, lag compensation, heatmap interpolation |
 | `ros2 run jgb_rover_gazebo check_spawn.py` | settling time, jitter, 4 contacts after spawn |
 | `ros2 run jgb_rover_bringup drive_test.py` | 1 m straight and 360° spin: wheel odometry vs ground truth |
 | `ros2 run jgb_rover_bringup eval_odometry.py --check injected` (or `nominal`) | 3 squares + figure-8: wheel-only vs EKF, PASS/FAIL |
 | `ros2 run jgb_rover_bringup check_visual_scan.py` | `/visual_scan` vs ray-cast ground truth while spinning |
 | `ros2 run jgb_rover_bringup waypoint_tour.py` | drives through both rooms with 360° look-arounds |
 | `ros2 run jgb_rover_bringup eval_map.py map.yaml` | saved map vs world SDF: wall-alignment error, overlay PNG |
+| `ros2 run jgb_rover_bringup eval_heatmap.py temperature_heatmap.npz` | saved heatmap vs the world's true temperature field, PASS/FAIL |
 | `PYTHONNOUSERSITE=1 python3 ros2_ws/src/jgb_rover_gazebo/scripts/gen_world.py` | regenerates the world, markers and posters from `apartment_layout.yaml` |
 
 `waypoint_tour.py` and the motion scripts navigate on the ground truth (they are test drivers);
@@ -183,6 +199,8 @@ the estimators only see the sensors.
 | `/visual_scan/debug` | `sensor_msgs/Image` | `visual_floor_scan` (floor mask, boundary, horizon) | same |
 | `/map` | `nav_msgs/OccupancyGrid` | `slam_toolbox` | same |
 | `/aruco/poses` | `geometry_msgs/PoseArray` | `aruco_detector` (frame `camera_optical_frame`) | same |
+| `/temperature` | `sensor_msgs/Temperature` (frame `temp_sensor_link`, 2 Hz) | `sim_mcp9808` | `mcp9808_driver` (I2C on the Pi) |
+| `/temperature_map`, `/temperature_map/legend` | `nav_msgs/OccupancyGrid`, `visualization_msgs/Marker` | `temperature_mapper` | same |
 | `/path/ekf`, `/path/ground_truth` | `nav_msgs/Path` | `path_recorder.py` (RViz) | `/path/ekf` only |
 | `/ground_truth/odom` | `nav_msgs/Odometry` | Gazebo `OdometryPublisher` (frame `world`) | (none) |
 | `/clock` | `rosgraph_msgs/Clock` | Gazebo | (none, `use_sim_time:=false`) |
@@ -193,7 +211,7 @@ TF tree (who publishes in brackets):
 map ─[slam_toolbox]─▶ odom ─[EKF, 50 Hz]─▶ base_footprint
 base_footprint ─▶ base_link (z = 0.0435)           [robot_state_publisher, fixed]
 base_link ─▶ left_wheel_link, right_wheel_link     [robot_state_publisher, from /joint_states]
-base_link ─▶ caster_front_link, caster_rear_link, imu_link
+base_link ─▶ caster_front_link, caster_rear_link, imu_link, temp_sensor_link
 base_link ─▶ camera_link (pitched by camera_pitch) ─▶ camera_optical_frame
 base_footprint ─▶ visual_scan_link                 (ground point under the lens: scan origin)
 camera_optical_frame ─[aruco_detector]─▶ aruco_<id>
@@ -284,6 +302,27 @@ Two `slam_toolbox` behaviours that matter for this robot (both handled in the co
 - `use_response_expansion: true` widens the rotation search on weak matches, which produced 44°
   jumps with this scan.
 
+### Temperature heatmap (`jgb_rover_temperature/config/temperature_mapper.yaml`)
+
+A point sensor only measures where the robot has been, so the heatmap is built in three steps:
+
+1. **Lag compensation.** The MCP9808 breakout follows the air with a first-order lag
+   (`temperature_sensor.time_constant_s` in the spec, 6 s *estimated*). Driving at 0.2 m/s, an
+   uncompensated reading belongs to a spot ~1.2 m back along the path. The mapper fits a line to the
+   last `lag_window_s` (4 s) of readings and uses `T_air = T + tau * dT/dt` at the window centre,
+   placed at the sensor's TF pose at that time. Set `sensor_time_constant_s: 0` to switch it off.
+2. **Gridding.** Samples are averaged per `resolution` (10 cm) cell; each visited cell counts once,
+   so the long 360° look-arounds do not dominate. A Gaussian kernel (`smoothing_sigma`, 0.25 m)
+   interpolates between the driven paths, out to `max_distance` (0.6 m) from the nearest sample.
+3. **Masking.** Cells the SLAM map does not show as free (walls, furniture, unexplored space) are
+   left unknown.
+
+The simulated sensor (`sim_mcp9808`) uses the spec's 0.0625 °C resolution and 2 Hz rate, the
+spec's time constant, and from `sim_assumptions.yaml` a per-run offset (σ 0.15 °C) and noise. It
+samples the `temperature` section of `apartment_layout.yaml`: 21 °C ambient, a radiator under the
+north wall (+5 °C), a PC under the table (+2 °C) and an open window in the side room (−4 °C).
+Edit that section to try other fields; no world regeneration is needed.
+
 ## Measured results
 
 Headless runs in Gazebo (RTX 3060). Plots and maps are in `results/`.
@@ -323,6 +362,12 @@ between runs because the simulated gyro bias is drawn anew each run, as on a rea
 - ArUco markers (all 8 seen): map position 3.7–13 cm from the truth, height within 0.7 cm, facing
   direction within ±10°.
 
+**Temperature heatmap** (waypoint tour, 270 s, 614 samples; `eval_heatmap.py`): **0.29 °C RMS**
+error over 19.6 m² (median |e| 0.06 °C, p90 0.47 °C, mean +0.02 °C; target < 1.0 °C, PASS). The
+warmest and coldest cells are 0.2 m from the true ones. The true range in the covered area is 17.1–26.0 °C, the
+measured 18.4–25.2 °C: the extremes are flattened where the map extends past the path (the radiator
+peak and the window end of the side room, see `results/temperature/temperature_heatmap_eval.png`).
+
 ## Limits of the visual floor scan
 
 Measured or observed in simulation:
@@ -356,6 +401,7 @@ What changes and what does not:
 | (alternative) | micro-ROS on the MCU | then the MCU must provide the same interfaces: either a `ros2_control` hardware interface on top of micro-ROS topics, or publish `/wheel/odom` (same covariances) itself and subscribe `/cmd_vel` (`TwistStamped`) |
 | Gazebo IMU → `/imu/data_raw` | MCU publishes `sensor_msgs/Imu` on `/imu/data_raw`, frame `imu_link`, 100 Hz | gyro in rad/s, acceleration in m/s² including gravity, `orientation_covariance[0] = -1`. Board mounted X forward, Z up as in the spec |
 | Gazebo camera | `v4l2_camera` | see below |
+| `sim_mcp9808` → `/temperature` | `mcp9808_driver` → `/temperature` | see below |
 | `/ground_truth/odom`, `path_recorder` ground-truth path | (none) | evaluation only |
 
 Unchanged: `robot_state_publisher` + URDF (with `sim_gazebo:=false`), `imu_bias_calibration`, the EKF,
@@ -383,6 +429,35 @@ Use manual focus and fixed exposure / white balance if the driver allows it: aut
 the floor colour and the floor model has to re-learn. Measure the real camera pitch and pass it as
 `camera_pitch`; the floor scan reads the camera pose from TF, so nothing else changes.
 
+**Temperature sensor (MCP9808, Adafruit 1782).** It goes straight to the Pi's I2C bus, not to the
+microcontroller: VIN → 3V3 (pin 1), GND → pin 6, SDA → GPIO2 (pin 3), SCL → GPIO3 (pin 5), A0–A2
+unconnected (address 0x18). Enable I2C (`raspi-config` → Interface Options → I2C, or
+`dtparam=i2c_arm=on` in `/boot/firmware/config.txt`), add the user to the `i2c` group, then:
+
+```bash
+sudo apt install i2c-tools python3-smbus2
+i2cdetect -y 1                                    # 18 must show up
+ros2 run jgb_rover_temperature mcp9808_driver --ros-args \
+  --params-file $(python3 -c "from jgb_rover_control.spec_params import render; \
+    from ament_index_python.packages import get_package_share_directory as s; \
+    print(render(s('jgb_rover_temperature') + '/config/mcp9808_driver.yaml'))")
+ros2 run jgb_rover_temperature temperature_mapper --ros-args \
+  --params-file $(python3 -c "from jgb_rover_control.spec_params import render; \
+    from ament_index_python.packages import get_package_share_directory as s; \
+    print(render(s('jgb_rover_temperature') + '/config/temperature_mapper.yaml'))")
+```
+
+The driver checks the manufacturer and device IDs at startup, so a wiring error fails loudly.
+Mounting matters more than the sensor: the Pi, the motor drivers and the battery all warm the air
+around the deck, so put the board on a standoff, upwind (front) or at least away from the Pi's
+heatsink, and update `temperature_sensor.origin_in_base_footprint`. Two calibrations, both
+optional because the map only needs to be roughly right:
+
+- *Offset*: leave the robot next to a reference thermometer for 10 minutes with everything
+  running; put the difference in `offset_c` (`mcp9808_driver.yaml`). Self-heating shows up here.
+- *Time constant*: let the reading settle in a warm spot, carry the robot (switched on) to a cool
+  one, and time how long it takes to cover 63 % of the step; put it in `time_constant_s`.
+
 **Values to re-measure on the real robot** (in `robot_spec.yaml`): effective wheel radius (the spec
 notes ~0.042 m vs 0.0435 m nominal; drive a measured distance), effective wheel separation (spin
 10 turns), IMU noise (record still data), camera pose and pitch, wheel mass. Then re-check the EKF
@@ -393,7 +468,7 @@ that on the Pi. If it cannot keep 10 Hz, lower `proc_width/height` or `max_rate`
 `rviz` and `aruco` on the Pi and visualise from a laptop on the same network.
 
 There is no real-robot bringup launch yet; it will be `bringup_sim.launch.py` minus Gazebo plus the
-hardware interface / micro-ROS agent and `v4l2_camera`.
+hardware interface / micro-ROS agent, `v4l2_camera` and `mcp9808_driver` in place of `sim_mcp9808`.
 
 ## Repository layout
 
@@ -401,7 +476,7 @@ hardware interface / micro-ROS agent and `v4l2_camera`.
 robot_spec.yaml                  single source of truth (from CAD)
 meshes/                          original meshes
 docker/                          Dockerfile, compose.yaml, entrypoint, build_ws helper
-results/phase3, results/phase4   evaluation plots, maps, overlays (JSON next to each)
+results/phase3, results/phase4, results/temperature   evaluation plots, maps, overlays (JSON next to each)
 ros2_ws/src/
   jgb_rover_description/   urdf/*.xacro, meshes/, rviz/, config/sim_assumptions.yaml, display.launch.py
   jgb_rover_gazebo/        worlds/ (generated), models/ (markers, posters), config/bridge.yaml,
@@ -409,6 +484,7 @@ ros2_ws/src/
   jgb_rover_control/       config/controllers.yaml (spec placeholders), spec_params.py
   jgb_rover_localization/  imu_bias_calibration node, config/ekf.yaml
   jgb_rover_perception/    visual_floor_scan (+ floor_scan_core.py, tests), aruco_detector
+  jgb_rover_temperature/   mcp9808_driver (real I2C), sim_mcp9808, temperature_mapper (+ heatmap_core.py, tests)
   jgb_rover_bringup/       launch/bringup_sim.launch.py, config/slam_toolbox.yaml, rviz/sim.rviz,
                            scripts/ (tests, evaluation, tour, path recorder)
 ```

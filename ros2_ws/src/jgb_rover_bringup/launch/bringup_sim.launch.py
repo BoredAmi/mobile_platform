@@ -1,5 +1,6 @@
 """Full simulation bringup for jgb_rover: Gazebo, ros2_control, IMU bias calibration, EKF,
-visual floor scan, slam_toolbox, optional ArUco check, path recorder and RViz.
+visual floor scan, slam_toolbox, simulated MCP9808 + temperature heatmap, optional ArUco check,
+path recorder and RViz.
 
   ros2 launch jgb_rover_bringup bringup_sim.launch.py world:=apartment camera_pitch:=0.26 \
       slam:=true rviz:=true inject_errors:=false
@@ -69,6 +70,17 @@ def launch_setup(context):
             parameters=[os.path.join(per_share, 'config', 'aruco_detector.yaml'),
                         {'use_sim_time': True, 'spawn_pose': spawn,
                          'ground_truth_file': layout if world_is_apartment(context) else ''}]))
+    if as_bool(context, 'temperature'):
+        tmp_share = get_package_share_directory('jgb_rover_temperature')
+        layout = os.path.join(get_package_share_directory('jgb_rover_gazebo'), 'config', 'apartment_layout.yaml')
+        actions.append(Node(
+            package='jgb_rover_temperature', executable='sim_mcp9808', output='screen',
+            parameters=[render(os.path.join(tmp_share, 'config', 'mcp9808_driver.yaml')),
+                        {'use_sim_time': True, 'layout_file': layout if world_is_apartment(context) else ''}]))
+        actions.append(Node(
+            package='jgb_rover_temperature', executable='temperature_mapper', output='screen',
+            parameters=[render(os.path.join(tmp_share, 'config', 'temperature_mapper.yaml')),
+                        {'use_sim_time': True, 'map_topic': '/map' if as_bool(context, 'slam') else ''}]))
     if as_bool(context, 'slam'):
         slam_params = LaunchConfiguration('slam_params_file').perform(context) or os.path.join(
             get_package_share_directory('jgb_rover_bringup'), 'config', 'slam_toolbox.yaml')
@@ -99,6 +111,8 @@ def generate_launch_description():
         DeclareLaunchArgument('slam_scan_matching', default_value='false',
                               description='let slam_toolbox correct the EKF pose by scan matching (see README)'),
         DeclareLaunchArgument('rviz', default_value='true', description='RViz with map, scan, paths, debug image'),
+        DeclareLaunchArgument('temperature', default_value='true',
+                              description='simulated MCP9808 + temperature heatmap (/temperature_map)'),
         DeclareLaunchArgument('aruco', default_value='false', description='ArUco landmark detector + map check'),
         DeclareLaunchArgument('x', default_value='0.0'),
         DeclareLaunchArgument('y', default_value='0.0'),

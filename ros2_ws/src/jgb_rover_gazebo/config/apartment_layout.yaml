@@ -85,3 +85,13 @@ slip_patches:
   items:
     - {xy: [0.5, 0.0], size: [0.6, 0.6]}
     - {xy: [-1.0, -1.5], size: [0.6, 0.6]}
+
+# Air temperature field for the simulated MCP9808 (not part of the SDF): ambient plus Gaussian
+# sources/sinks, T(x, y) = ambient_c + gradient . (x, y) + sum delta_c * exp(-d^2 / (2 sigma^2)).
+temperature:
+  ambient_c: 21.0
+  gradient_c_per_m: [0.0, 0.0]
+  sources:
+    - {name: radiator,    xy: [0.5, 2.3],  delta_c:  5.0, sigma: 0.9}   # under the north wall
+    - {name: pc_under_table, xy: [-1.5, 1.2], delta_c: 2.0, sigma: 0.5}
+    - {name: open_window, xy: [5.0, 0.0],  delta_c: -4.0, sigma: 1.0}   # side room, east wall

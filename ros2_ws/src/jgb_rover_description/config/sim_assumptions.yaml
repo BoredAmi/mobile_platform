@@ -32,3 +32,11 @@ error_injection:
 
 ground_truth:
   publish_rate_hz: 50.0
+
+temperature_sensor:
+  # The simulated MCP9808 samples the world's temperature field (apartment_layout.yaml
+  # 'temperature') at the sensor position, with the first-order lag of
+  # robot_spec temperature_sensor.time_constant_s.
+  bias_stddev_c: 0.15        # constant per-run offset, drawn once (accuracy_c is the typical bound)
+  noise_stddev_c: 0.03       # per sample, before quantisation to resolution_c
+  default_ambient_c: 21.0    # worlds without a 'temperature' section

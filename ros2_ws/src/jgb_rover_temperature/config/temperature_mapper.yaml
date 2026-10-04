@@ -1,0 +1,16 @@
+# temperature_mapper node. "$(spec <key>)" values come from robot_spec.yaml (rendered at launch).
+temperature_mapper:
+  ros__parameters:
+    map_frame: map
+    temperature_topic: /temperature
+    map_topic: /map                   # '' = do not mask the heatmap with the SLAM map
+    heatmap_topic: /temperature_map
+    resolution: 0.10                  # m per heatmap cell
+    smoothing_sigma: 0.25             # m, Gaussian interpolation between driven paths
+    max_distance: 0.6                 # m, cells farther than this from any sample stay unknown
+    sensor_time_constant_s: $(spec temperature_sensor.time_constant_s)
+    lag_window_s: 4.0                 # s of readings fitted per lag-compensated sample
+    t_min: 0.0                        # colour range in C; t_min == t_max = automatic
+    t_max: 0.0
+    publish_period: 2.0               # s
+    output_dir: ~/.ros/temperature_map

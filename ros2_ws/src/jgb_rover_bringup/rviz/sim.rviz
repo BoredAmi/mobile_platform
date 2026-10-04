@@ -31,6 +31,27 @@ Visualization Manager:
       Alpha: 0.8
       Color Scheme: map
       Value: true
+    - Class: rviz_default_plugins/Map
+      Name: Temperature
+      Enabled: true
+      Topic:
+        Value: /temperature_map
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        Depth: 1
+      Alpha: 0.6
+      Color Scheme: costmap
+      Draw Behind: false
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Name: TemperatureLegend
+      Enabled: true
+      Topic:
+        Value: /temperature_map/legend
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        Depth: 1
+      Value: true
     - Class: rviz_default_plugins/RobotModel
       Name: RobotModel
       Enabled: true

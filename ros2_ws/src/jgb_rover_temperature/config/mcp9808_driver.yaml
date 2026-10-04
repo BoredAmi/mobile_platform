@@ -1,0 +1,16 @@
+# mcp9808_driver (real robot) and sim_mcp9808 (simulation). "$(spec <key>)" values come from
+# robot_spec.yaml (rendered at launch). sim_mcp9808 reads the rest of its model from the spec.
+mcp9808_driver:
+  ros__parameters:
+    topic: /temperature
+    frame_id: $(spec temperature_sensor.frame)
+    i2c_bus: $(spec temperature_sensor.i2c_bus)
+    i2c_address: $(spec temperature_sensor.i2c_address)
+    resolution_c: $(spec temperature_sensor.resolution_c)
+    accuracy_c: $(spec temperature_sensor.accuracy_c)
+    rate_hz: $(spec temperature_sensor.rate_hz)
+    offset_c: 0.0                     # calibration against a reference thermometer
+    # simulation only
+    ground_truth_topic: /ground_truth/odom
+    layout_file: ''                   # set by the launch file for the apartment worlds
+    seed: 0
