@@ -27,6 +27,14 @@ simulation nodes can be replaced by hardware drivers without changing anything d
                                 └──────────────────────────────────────────────────────┘
 ```
 
+<p align="center">
+  <img src="results/phase4/camera_view.png" width="32%" alt="simulated webcam view">
+  <img src="results/phase4/map_overlay.png" width="32%" alt="map built from the camera scan">
+  <img src="results/temperature/temperature_heatmap.png" width="32%" alt="temperature heatmap">
+</p>
+<p align="center"><em>Simulated webcam view · map built from the camera alone (green = within 5 cm of
+the true walls) · temperature heatmap from the MCP9808</em></p>
+
 ## Contents
 
 1. [Environment](#environment)
@@ -284,6 +292,14 @@ table is rebuilt only when the camera pose or intrinsics change, so a frame cost
 Watch `/visual_scan/debug` while tuning: green = floor, red dots = obstacle bases within range,
 orange = beyond range, magenta = horizon, cyan box = seed patch.
 
+<p align="center">
+  <img src="results/phase4/camera_view.png" width="45%" alt="camera image">
+  <img src="results/phase4/floor_scan_debug.png" width="45%" alt="floor scan debug image">
+</p>
+<p align="center"><em>Camera image and <code>/visual_scan/debug</code> for the same frame. The white
+walls are close enough in colour to pass as floor, so the column walk is stopped by the Canny edge
+at their base; chair and table legs end in red dots (obstacles within 2.5 m).</em></p>
+
 ### SLAM
 
 `jgb_rover_bringup/config/slam_toolbox.yaml`, `online_async`, resolution 0.03 m, max range 2.5 m.
@@ -301,6 +317,13 @@ Two `slam_toolbox` behaviours that matter for this robot (both handled in the co
   until that was set to 0 (scan rate is then limited by `minimum_time_interval`);
 - `use_response_expansion: true` widens the rotation search on weak matches, which produced 44°
   jumps with this scan.
+
+<p align="center">
+  <img src="results/phase4/map_overlay.png" width="45%" alt="map, scan matching off">
+  <img src="results/phase4/map_scan_matching_overlay.png" width="45%" alt="map, scan matching on">
+</p>
+<p align="center"><em>Same tour, scan matching off (left, 3.5 cm RMS) and on (right, 10.6 cm, rotated
+rooms, magenta = walls that do not exist). Grey is the true geometry.</em></p>
 
 ### Temperature heatmap (`jgb_rover_temperature/config/temperature_mapper.yaml`)
 
@@ -346,6 +369,13 @@ truth 1.0020 m (0.00 %, limit 3 %). 360° spin: wheel-odometry yaw error +0.00°
 | radius mismatch + IMU ax | 35.99 cm / −50.74° | 0.88 cm / +0.53° | ax not kept |
 | no injection + IMU ax | 0.02 cm / −0.00° | 0.36 cm / −0.24° | |
 
+![odometry with a 1.5 % smaller left wheel](results/phase3/eval_odometry_mismatch_win2.png)
+*Left wheel 1.5 % smaller: wheel odometry (orange) curls away and ends 51° off; the EKF (green)
+stays on the ground truth (black).*
+
+![odometry on slip patches](results/phase3/eval_odometry_slip_gyro.png)
+*Slip patches: the gyro keeps the heading (+0.5° vs +4.2°), but distance lost to slip stays lost.*
+
 Without injection the simulated wheel odometry is exact, so no fused estimate can be strictly better;
 the EKF's remaining error is the gyro bias left after calibration (expected 0.0009/√300 rad/s, i.e.
 ~0.4° over two minutes) and a one-IMU-sample lag in turns. Results vary by a few tenths of a degree
@@ -366,7 +396,10 @@ between runs because the simulated gyro bias is drawn anew each run, as on a rea
 error over 19.6 m² (median |e| 0.06 °C, p90 0.47 °C, mean +0.02 °C; target < 1.0 °C, PASS). The
 warmest and coldest cells are 0.2 m from the true ones. The true range in the covered area is 17.1–26.0 °C, the
 measured 18.4–25.2 °C: the extremes are flattened where the map extends past the path (the radiator
-peak and the window end of the side room, see `results/temperature/temperature_heatmap_eval.png`).
+peak and the window end of the side room).
+
+![heatmap vs true field](results/temperature/temperature_heatmap_eval.png)
+*Measured heatmap, true field on the same cells, and the error (red = measured too warm).*
 
 ## Limits of the visual floor scan
 
