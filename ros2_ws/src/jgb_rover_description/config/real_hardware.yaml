@@ -1,0 +1,32 @@
+# Values the REAL robot needs that are not in robot_spec.yaml (the counterpart of
+# sim_assumptions.yaml). Used by
+#   - urdf/ros2_control.xacro (sim_gazebo:=false): hardware parameters of jgb_rover_hardware/JgbRoverSystem,
+#     which sends them to the RP2040 board at startup (no reflash needed to change them)
+#   - firmware/tools/rover_cli.py: the same values for bench tests
+# Encoder counts per revolution come from robot_spec.yaml (encoders.counts_per_output_rev_x4).
+
+mcu:
+  board: Waveshare RP2040-Zero, firmware in firmware/rp2040
+  serial_port: /dev/jgb_rover_mcu   # udev symlink (firmware/rp2040/99-jgb-rover-mcu.rules); else /dev/ttyACM0
+  telemetry_timeout_s: 0.1          # no telemetry for this long: velocities and gyro reported as 0
+  handshake_timeout_s: 3.0          # at startup: wait this long for the board to answer
+  cmd_timeout_ms: 250               # the board stops the motors when no command came for this long
+
+# Per-wheel speed controller on the board: duty = kff * target + deadband + kp * err + ki * integral(err).
+# Starting values for a JGB37-520 at 12 V; tune with `rover_cli.py step` (firmware/rp2040/README.md).
+wheel_controller:
+  kff: 0.085            # duty per rad/s: ~1 / no-load speed (11.52 rad/s at 12 V)
+  deadband_duty: 0.04   # static friction: smallest duty that turns the wheel on the ground
+  kp: 0.05              # duty per rad/s of error
+  ki: 0.3               # duty per rad of error
+  max_duty: 0.95
+  vel_window: 4         # velocity estimate over 4 cycles (40 ms): 0.04 rad/s resolution
+
+# Positive = that wheel moves the robot forward. The right motor is mounted mirrored, so its motor
+# and encoder are usually inverted. Check with `rover_cli.py check` (wheels off the ground).
+wiring:
+  invert_left_motor: false
+  invert_right_motor: true
+  invert_left_encoder: false
+  invert_right_encoder: true
+  idle_brake: true      # zero duty = short brake (true) or coast (false)

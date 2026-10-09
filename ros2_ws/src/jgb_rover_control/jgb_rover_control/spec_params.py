@@ -53,3 +53,28 @@ def render(template_path: str, out_name: str = None) -> str:
     with open(out, 'w') as f:
         f.write(rendered)
     return out
+
+
+def wall_clock(param_path: str, out_name: str = None) -> str:
+    """Copy of a parameter file with every use_sim_time set to false, for the real robot.
+
+    Needed because launch_ros passes a {'use_sim_time': False} dict under the '/**' wildcard, and
+    node-specific entries in a file (e.g. ekf_filter_node: use_sim_time: true) win over wildcards.
+    """
+    with open(param_path) as f:
+        data = yaml.safe_load(f)
+
+    def clear(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == 'use_sim_time':
+                    node[key] = False
+                else:
+                    clear(value)
+    clear(data)
+    out_dir = os.path.join(tempfile.gettempdir(), 'jgb_rover_params')
+    os.makedirs(out_dir, exist_ok=True)
+    out = os.path.join(out_dir, out_name or 'wall_' + os.path.basename(param_path))
+    with open(out, 'w') as f:
+        yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+    return out

@@ -116,9 +116,11 @@ meshes:                          # visual only, metres
 
 real_hardware_later:             # context only - not part of the simulation task
   computer: Raspberry Pi 4B 8GB (runs ROS 2)
-  microcontrollers_available: [Teensy 4.1 x2, ESP32 (several)]
-  imu_bus: I2C (GY-521, address 0x68) to the microcontroller
+  microcontrollers_available: [Teensy 4.1 x2, ESP32 (several), Waveshare RP2040-Zero]
+  microcontroller_used: Waveshare RP2040-Zero over USB (firmware/rp2040, settings in real_hardware.yaml)
+  imu_bus: I2C (GY-521, address 0x68) to the microcontroller (RP2040 GP6 SDA / GP7 SCL)
   encoders: A/B to microcontroller interrupt pins
+  motor_driver: 2 x BTS7960 (IBT-2) module, one per motor, RPWM/LPWM + R_EN/L_EN from the RP2040
   camera: USB to the Raspberry Pi
   temperature_sensor: I2C (MCP9808, address 0x18) directly to the Raspberry Pi
   battery: 12 V 12 Ah AGM

@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <!-- ros2_control system for the two drive wheels. Velocity command, position + velocity state
      (position = encoder count, velocity = derived). The hardware plugin is the only thing that
-     changes between simulation and the real robot. Uses properties of jgb_rover.urdf.xacro. -->
+     changes between simulation and the real robot. Uses properties of jgb_rover.urdf.xacro.
+     On the real robot the MPU6050 is on the same RP2040 board, so it is a sensor of this system
+     too (read by imu_sensor_broadcaster -> /imu/data_raw); in simulation the IMU comes from Gazebo. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:macro name="wheel_interfaces" params="joint">
@@ -21,12 +23,47 @@
         <plugin>gz_ros2_control/GazeboSimSystem</plugin>
       </xacro:if>
       <xacro:unless value="$(arg sim_gazebo)">
-        <!-- real robot: custom hardware interface talking to the ESP32/Teensy (not written yet) -->
+        <!-- real robot: RP2040 board over USB (jgb_rover_hardware, firmware/rp2040) -->
+        <xacro:property name="real" value="${xacro.load_yaml(pkg + '/config/real_hardware.yaml')}"/>
+        <xacro:property name="port_arg" value="$(arg serial_port)"/>
         <plugin>$(arg hardware_plugin)</plugin>
+        <param name="serial_port">${real.mcu.serial_port if port_arg == '' else port_arg}</param>
+        <param name="telemetry_timeout_s">${real.mcu.telemetry_timeout_s}</param>
+        <param name="handshake_timeout_s">${real.mcu.handshake_timeout_s}</param>
+        <param name="cmd_timeout_ms">${real.mcu.cmd_timeout_ms}</param>
+        <param name="counts_per_rev">${spec.encoders.counts_per_output_rev_x4}</param>
+        <xacro:property name="wc" value="${real.wheel_controller}"/>
+        <param name="kp">${wc.kp}</param>
+        <param name="ki">${wc.ki}</param>
+        <param name="kff">${wc.kff}</param>
+        <param name="deadband_duty">${wc.deadband_duty}</param>
+        <param name="max_duty">${wc.max_duty}</param>
+        <param name="vel_window">${wc.vel_window}</param>
+        <xacro:property name="w" value="${real.wiring}"/>
+        <param name="invert_left_motor">${w.invert_left_motor}</param>
+        <param name="invert_right_motor">${w.invert_right_motor}</param>
+        <param name="invert_left_encoder">${w.invert_left_encoder}</param>
+        <param name="invert_right_encoder">${w.invert_right_encoder}</param>
+        <param name="idle_brake">${w.idle_brake}</param>
       </xacro:unless>
     </hardware>
     <xacro:wheel_interfaces joint="left_wheel_joint"/>
     <xacro:wheel_interfaces joint="right_wheel_joint"/>
+    <xacro:unless value="$(arg sim_gazebo)">
+      <sensor name="imu_sensor">
+        <state_interface name="orientation.x"/>
+        <state_interface name="orientation.y"/>
+        <state_interface name="orientation.z"/>
+        <state_interface name="orientation.w"/>
+        <state_interface name="angular_velocity.x"/>
+        <state_interface name="angular_velocity.y"/>
+        <state_interface name="angular_velocity.z"/>
+        <state_interface name="linear_acceleration.x"/>
+        <state_interface name="linear_acceleration.y"/>
+        <state_interface name="linear_acceleration.z"/>
+        <param name="frame_id">${spec.imu.frame}</param>
+      </sensor>
+    </xacro:unless>
   </ros2_control>
 
 </robot>

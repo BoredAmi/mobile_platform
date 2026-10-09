@@ -1,0 +1,7 @@
+<library path="jgb_rover_hardware">
+  <class name="jgb_rover_hardware/JgbRoverSystem"
+         type="jgb_rover_hardware::JgbRoverSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>jgb_rover drive wheels + MPU6050 on the RP2040 board (firmware/rp2040), over USB.</description>
+  </class>
+</library>

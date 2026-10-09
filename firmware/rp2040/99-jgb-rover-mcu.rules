@@ -1,0 +1,9 @@
+# jgb_rover RP2040 board -> /dev/jgb_rover_mcu (stable name, whatever ttyACM number it gets),
+# readable by the dialout group. Install:
+#   sudo cp firmware/rp2040/99-jgb-rover-mcu.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#   sudo usermod -aG dialout $USER     # then log out and in
+# The product string is set in firmware/rp2040/CMakeLists.txt (USBD_PRODUCT).
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000a", ATTRS{product}=="jgb_rover_mcu", SYMLINK+="jgb_rover_mcu", GROUP="dialout", MODE="0660"
+# ModemManager probes new ttyACM devices with AT commands; keep it away from the board
+ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000a", ATTRS{product}=="jgb_rover_mcu", ENV{ID_MM_DEVICE_IGNORE}="1"

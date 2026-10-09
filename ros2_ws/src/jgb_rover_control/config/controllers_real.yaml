@@ -1,0 +1,17 @@
+# Overlay for the real robot, loaded AFTER controllers.yaml (bringup_real.launch.py, which also
+# rewrites use_sim_time there to false): same diff_drive_controller, plus the IMU broadcaster for the MPU6050 on the RP2040
+# board (sensor "imu_sensor" of jgb_rover_hardware/JgbRoverSystem).
+#   /imu_sensor_broadcaster/imu -> /imu/data_raw (remapped in the launch file)
+controller_manager:
+  ros__parameters:
+    imu_sensor_broadcaster:
+      type: imu_sensor_broadcaster/IMUSensorBroadcaster
+
+imu_sensor_broadcaster:
+  ros__parameters:
+    use_sim_time: false
+    sensor_name: imu_sensor
+    frame_id: imu_link
+    # no magnetometer / no orientation estimate: -1 marks orientation as unknown (REP-145).
+    # imu_bias_calibration sets the gyro / accel covariances from robot_spec.yaml.
+    static_covariance_orientation: [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
