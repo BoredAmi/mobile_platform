@@ -12,9 +12,30 @@ namespace jgb_rover_hardware
 
 SerialPort::~SerialPort() {close();}
 
-bool SerialPort::open(const std::string & device)
+namespace
+{
+// Linux speed constants for the rates a USB-UART bridge (CP210x, CH340) handles; 0 = unsupported.
+speed_t baud_constant(int baud)
+{
+  switch (baud) {
+    case 115200: return B115200;
+    case 230400: return B230400;
+    case 460800: return B460800;
+    case 921600: return B921600;
+    case 1000000: return B1000000;
+    default: return 0;
+  }
+}
+}  // namespace
+
+bool SerialPort::open(const std::string & device, int baud)
 {
   close();
+  const speed_t speed = baud_constant(baud);
+  if (speed == 0) {
+    error_ = "unsupported baud_rate " + std::to_string(baud) + " (use 115200, 230400, 460800, 921600 or 1000000)";
+    return false;
+  }
   fd_ = ::open(device.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
   if (fd_ < 0) {
     error_ = device + ": " + std::strerror(errno);
@@ -30,10 +51,10 @@ bool SerialPort::open(const std::string & device)
   tio.c_cflag |= CLOCAL | CREAD;
   tio.c_cc[VMIN] = 0;
   tio.c_cc[VTIME] = 0;
-  // USB serial ignores the rate, but some magic rates reboot boards into their bootloader (Teensy:
-  // 134, RP2040 / Arduino: 1200): never use those.
-  cfsetispeed(&tio, B115200);
-  cfsetospeed(&tio, B115200);
+  // Native USB serial ignores the rate, but some magic rates reboot boards into their bootloader
+  // (Teensy: 134, RP2040 / Arduino: 1200): baud_constant() only allows safe ones.
+  cfsetispeed(&tio, speed);
+  cfsetospeed(&tio, speed);
   if (tcsetattr(fd_, TCSANOW, &tio) != 0) {
     error_ = device + ": tcsetattr failed (" + std::strerror(errno) + ")";
     close();

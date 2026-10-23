@@ -118,7 +118,7 @@ real_hardware_later:             # context only - not part of the simulation tas
   computer: Raspberry Pi 4B 8GB (runs ROS 2)
   microcontrollers_available: [Teensy 4.1 x2, ESP32 (several), Waveshare RP2040-Zero]
   microcontroller_used: Teensy 4.1 over USB (firmware/teensy41, settings in real_hardware.yaml)
-  imu_bus: I2C (GY-521, address 0x68) to the microcontroller (Teensy pin 18 SDA / 19 SCL)
+  imu_bus: I2C (GY-521, address 0x68) to the microcontroller (Teensy pin 25 SDA / 24 SCL)
   encoders: A/B to microcontroller interrupt pins
   motor_driver: 2 x BTS7960 (IBT-2) module, one per motor, RPWM/LPWM + R_EN/L_EN from the Teensy
   camera: USB to the Raspberry Pi

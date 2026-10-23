@@ -2,6 +2,7 @@
 
 From a bare Teensy 4.1 to driving the robot with the keyboard. Details and background are in
 [`firmware/teensy41/README.md`](firmware/teensy41/README.md) and the main [README](README.md#sim-to-real).
+Using an ESP32 instead of the Teensy: see [`firmware/esp32/README.md`](firmware/esp32/README.md).
 
 **Safety: lift the robot so the wheels are off the ground until step 6.**
 
@@ -14,7 +15,7 @@ From a bare Teensy 4.1 to driving the robot with the keyboard. Details and backg
 | 20, 3 | left encoder A, B (pin 2 is damaged: don't use it) |
 | 4, 5 | right encoder A, B |
 | 3.3V, GND | both encoders VCC, GND (**3.3 V, never 5 V**) |
-| 18, 19 | GY-521 SDA, SCL (GY-521 VCC → 3.3V, AD0 → GND) |
+| 25, 24 | GY-521 SDA, SCL (GY-521 VCC → 3.3V, AD0 → GND) |
 | 6, 7 | left module RPWM, LPWM |
 | 8, 9 | right module RPWM, LPWM |
 | 10 | R_EN + L_EN of **both** BTS7960 modules, plus a 10 kΩ resistor to GND |
@@ -147,7 +148,7 @@ floor scan and the SLAM map.
 | upload hangs at "waiting for Teensy" | press the button on the Teensy; check `00-teensy.rules` is installed |
 | `Permission denied` on the port | `dialout` group: log out and in after `usermod` |
 | `board did not answer` / `no handshake` | another program has the port open (close `rover_cli.py monitor`), or firmware not flashed |
-| LED **blinks fast** or IMU `0x00` | GY-521 wiring: SDA pin 18, SCL pin 19, VCC 3.3V, AD0 to GND |
+| LED **blinks fast** or IMU `0x00` | GY-521 wiring: SDA pin 25, SCL pin 24, VCC 3.3V, AD0 to GND |
 | encoder `did not count` | encoder power (3.3V + GND) and A/B wires (left 20, 3 / right 4, 5) |
 | wheel never turns | pin 10 to all four EN pins, battery on B+ / B−, module VCC at 3.3V |
 | wheel turns the wrong way | `rover_cli.py check`, then fix `invert_*` in `real_hardware.yaml` |

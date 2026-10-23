@@ -47,7 +47,7 @@ All signals are 3.3 V. **The Teensy 4.1 is not 5 V tolerant.**
 | 20, 3 | left encoder A, B | pin 2 is damaged on this board: do not use it |
 | 4, 5 | right encoder A, B | |
 | 3.3V, GND | encoder VCC, GND (both motors) | **power the encoders from 3.3 V**: their outputs are pulled up to their own supply |
-| 18 (SDA), 19 (SCL) | GY-521 SDA, SCL | 400 kHz. GY-521 VCC → 3.3V, AD0 → GND (address 0x68); the GY-521 has its own pull-ups |
+| 25 (SDA), 24 (SCL) | GY-521 SDA, SCL (`Wire2`) | 400 kHz. GY-521 VCC → 3.3V, AD0 → GND (address 0x68); the GY-521 has its own pull-ups |
 | 22 | GY-521 INT | optional, not used yet |
 | 6, 7 | left module RPWM, LPWM | |
 | 8, 9 | right module RPWM, LPWM | |

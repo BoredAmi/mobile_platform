@@ -28,6 +28,7 @@
         <xacro:property name="port_arg" value="$(arg serial_port)"/>
         <plugin>$(arg hardware_plugin)</plugin>
         <param name="serial_port">${real.mcu.serial_port if port_arg == '' else port_arg}</param>
+        <param name="baud_rate">${real.mcu.baud_rate}</param>
         <param name="telemetry_timeout_s">${real.mcu.telemetry_timeout_s}</param>
         <param name="handshake_timeout_s">${real.mcu.handshake_timeout_s}</param>
         <param name="cmd_timeout_ms">${real.mcu.cmd_timeout_ms}</param>

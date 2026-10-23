@@ -95,6 +95,7 @@ CallbackReturn JgbRoverSystem::on_init(const hardware_interface::HardwareInfo & 
     if (options_.fallback_port == "none") {
       options_.fallback_port.clear();
     }
+    options_.baud = static_cast<int>(param_double(info_, "baud_rate", 115200));
     options_.telemetry_timeout_s = param_double(info_, "telemetry_timeout_s", 0.1);
     handshake_timeout_s_ = param_double(info_, "handshake_timeout_s", 3.0);
 

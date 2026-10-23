@@ -51,6 +51,8 @@ def load_config(args) -> rl.Config:
                    | rl.CFG_IDLE_BRAKE * bool(w['idle_brake'])))
         if args.port is None:
             args.port = hw['mcu']['serial_port']
+        if args.baud is None:
+            args.baud = int(hw['mcu'].get('baud_rate', 115200))
     except (ImportError, OSError, KeyError) as e:
         print(f'note: using built-in defaults ({e})', file=sys.stderr)
     for name, attr in (('kp', 'kp'), ('ki', 'ki'), ('kff', 'kff'), ('deadband', 'deadband_duty'),
@@ -66,15 +68,16 @@ def load_config(args) -> rl.Config:
 
 
 class Link:
-    def __init__(self, port):
+    def __init__(self, port, baud=115200):
         import serial
         if not os.path.exists(port) and port == '/dev/jgb_rover_mcu' and os.path.exists('/dev/ttyACM0'):
             print('note: /dev/jgb_rover_mcu missing (udev rule not installed?), using /dev/ttyACM0',
                   file=sys.stderr)
             port = '/dev/ttyACM0'
-        # the baud rate is ignored by USB serial, but must never be 134 (Teensy) or 1200: those reboot
-        # boards into their bootloader
-        self.ser = serial.Serial(port, 115200, timeout=0.01)
+        # native USB serial (Teensy) ignores the baud rate, but it must never be 134 or 1200: those
+        # reboot boards into their bootloader. ESP32 dev boards need the real rate (921600).
+        # Opening the port resets an ESP32 (auto-reset circuit); the handshake waits for the reboot.
+        self.ser = serial.Serial(port, baud, timeout=0.01)
         self.dec = rl.Decoder()
         self.info = None
         self.config = None
@@ -109,7 +112,8 @@ class Link:
         self.ser.reset_input_buffer()
         self.info = self.config = None
         end = time.monotonic() + timeout
-        while self.info is None and time.monotonic() < end:
+        # the board drops a reply when its USB buffer is full, so ask again until INFO and CONFIG are in
+        while (self.info is None or self.config is None) and time.monotonic() < end:
             self.send(rl.encode(rl.PING))
             self.poll(0.2)
         if self.info is None:
@@ -317,6 +321,7 @@ def cmd_bootloader(link, args, cfg):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--port', help='serial port (default: real_hardware.yaml mcu.serial_port)')
+    ap.add_argument('--baud', type=int, help='baud rate (default: real_hardware.yaml mcu.baud_rate)')
     for name in ('kp', 'ki', 'kff', 'deadband', 'max-duty'):
         ap.add_argument(f'--{name}', type=float)
     ap.add_argument('--vel-window', type=int)
@@ -343,7 +348,7 @@ def main():
     args = ap.parse_args()
 
     cfg = load_config(args)
-    link = Link(args.port or '/dev/ttyACM0')
+    link = Link(args.port or '/dev/ttyACM0', args.baud or 115200)
     {'info': cmd_info, 'monitor': cmd_monitor, 'imu': cmd_imu, 'check': cmd_check, 'pwm': cmd_pwm,
      'vel': cmd_vel, 'step': cmd_step, 'bootloader': cmd_bootloader}[args.cmd](link, args, cfg)
 

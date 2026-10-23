@@ -122,23 +122,23 @@ static const float axis_sign[3] = IMU_AXIS_SIGN;
 static bool wire_started;
 
 static bool mpu_write(uint8_t reg, uint8_t value) {
-  Wire.beginTransmission(IMU_I2C_ADDR);
-  Wire.write(reg);
-  Wire.write(value);
-  return Wire.endTransmission() == 0;
+  IMU_WIRE.beginTransmission(IMU_I2C_ADDR);
+  IMU_WIRE.write(reg);
+  IMU_WIRE.write(value);
+  return IMU_WIRE.endTransmission() == 0;
 }
 
 static bool mpu_read(uint8_t reg, uint8_t *buf, size_t len) {
-  Wire.beginTransmission(IMU_I2C_ADDR);
-  Wire.write(reg);
-  if (Wire.endTransmission(false) != 0) {
+  IMU_WIRE.beginTransmission(IMU_I2C_ADDR);
+  IMU_WIRE.write(reg);
+  if (IMU_WIRE.endTransmission(false) != 0) {
     return false;
   }
-  if (Wire.requestFrom((uint8_t)IMU_I2C_ADDR, (uint8_t)len) != len) {
+  if (IMU_WIRE.requestFrom((uint8_t)IMU_I2C_ADDR, (uint8_t)len) != len) {
     return false;
   }
   for (size_t i = 0; i < len; ++i) {
-    buf[i] = (uint8_t)Wire.read();
+    buf[i] = (uint8_t)IMU_WIRE.read();
   }
   return true;
 }
@@ -164,11 +164,11 @@ static void i2c_bus_recover(void) {
 
 uint8_t imu_init(void) {
   if (wire_started) {
-    Wire.end();
+    IMU_WIRE.end();
   }
   i2c_bus_recover();
-  Wire.begin();
-  Wire.setClock(IMU_I2C_BAUD);
+  IMU_WIRE.begin();
+  IMU_WIRE.setClock(IMU_I2C_BAUD);
   wire_started = true;
 
   uint8_t who = 0;

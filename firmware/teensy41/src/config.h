@@ -27,7 +27,8 @@
  *  11 / 12      left / right PWM     only with MOTOR_DRIVER_PWM_DIR
  *  13           on-board LED         status
  *  14 (A0)      battery voltage through a divider, see BATTERY_*
- *  18 / 19      SDA / SCL (Wire)     MPU6050 (GY-521 has its own pull-ups)
+ *  25 / 24      SDA / SCL (Wire2)    MPU6050 (GY-521 has its own pull-ups); 18 / 19 (Wire) did not
+ *                                    work on this board / wiring, see firmware/pintest
  *  22           MPU6050 INT          not used yet
  */
 #define PIN_LEFT_ENC_A 20  /* pin 2 is damaged on this board */
@@ -43,8 +44,9 @@
 #define PIN_RIGHT_PWM 12
 #define PIN_STATUS_LED 13
 #define PIN_BATTERY_ADC 14
-#define PIN_I2C_SDA 18
-#define PIN_I2C_SCL 19
+#define IMU_WIRE Wire2    /* I2C bus of the IMU: Wire2 = SDA 25, SCL 24 */
+#define PIN_I2C_SDA 25
+#define PIN_I2C_SCL 24
 
 /* ---------------- motor driver ----------------
  * MOTOR_DRIVER_PWM_PWM: PWM on IN1 (RPWM) or IN2 (LPWM), the other low: BTS7960 / IBT-2 modules,

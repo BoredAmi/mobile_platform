@@ -6,8 +6,9 @@
 # Encoder counts per revolution come from robot_spec.yaml (encoders.counts_per_output_rev_x4).
 
 mcu:
-  board: Teensy 4.1, firmware in firmware/teensy41
+  board: Teensy 4.1, firmware in firmware/teensy41   # or: ESP32, firmware in firmware/esp32 (then baud_rate 921600)
   serial_port: /dev/jgb_rover_mcu   # udev symlink (firmware/teensy41/99-jgb-rover-mcu.rules); else /dev/ttyACM0
+  baud_rate: 115200                 # Teensy (native USB) ignores it; ESP32 behind a USB-UART chip: 921600
   telemetry_timeout_s: 0.1          # no telemetry for this long: velocities and gyro reported as 0
   handshake_timeout_s: 3.0          # at startup: wait this long for the board to answer
   cmd_timeout_ms: 250               # the board stops the motors when no command came for this long

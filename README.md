@@ -447,6 +447,8 @@ Unchanged: `robot_state_publisher` + URDF (with `sim_gazebo:=false`), `imu_bias_
 
 **Motors, encoders, IMU (Teensy 4.1 board).** Wiring, flashing and a bench bring-up without ROS (IMU
 check, motor directions, speed-controller tuning) are in [`firmware/teensy41/README.md`](firmware/teensy41/README.md).
+The same firmware also exists for an **ESP32** dev board ([`firmware/esp32`](firmware/esp32/README.md): other pins,
+921600 baud UART link, `mcu.baud_rate` in `real_hardware.yaml`); everything on the ROS side stays the same.
 Then:
 
 ```bash
@@ -457,7 +459,7 @@ ros2 launch jgb_rover_bringup bringup_real.launch.py                 # + camera,
 
 | argument | default | meaning |
 |----------|---------|---------|
-| `serial_port` | `real_hardware.yaml` | Teensy device: `/dev/jgb_rover_mcu` (udev rule), falls back to `/dev/ttyACM0` |
+| `serial_port` | `real_hardware.yaml` | board device: `/dev/jgb_rover_mcu` (udev rule), falls back to `/dev/ttyACM0`; `baud_rate` next to it matters for the ESP32 only (921600) |
 | `camera`, `video_device`, `camera_info_url` | `true`, `/dev/video0`, `~/.ros/camera_info/webcam.yaml` | `v4l2_camera` |
 | `camera_pitch` | spec | measured camera tilt [rad] |
 | `perception`, `slam`, `aruco`, `slam_scan_matching`, `ekf_imu_accel` | as in the simulation | |
@@ -536,7 +538,7 @@ that on the Pi. If it cannot keep 10 Hz, lower `proc_width/height` or `max_rate`
 
 ```
 robot_spec.yaml                  single source of truth (from CAD)
-firmware/                        Teensy 4.1 motor/encoder/IMU board: protocol/, common/, teensy41/ (PlatformIO), tools/ (bench CLI, fake board), test/
+firmware/                        motor/encoder/IMU board: protocol/, common/, teensy41/ and esp32/ (PlatformIO), pintest/ (wiring test), tools/ (bench CLI, fake board), test/
 meshes/                          original meshes
 docker/                          Dockerfile, compose.yaml, entrypoint, build_ws helper
 results/phase3, results/phase4, results/temperature   evaluation plots, maps, overlays (JSON next to each)

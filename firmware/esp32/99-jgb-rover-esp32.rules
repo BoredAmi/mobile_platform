@@ -1,0 +1,12 @@
+# jgb_rover ESP32 board behind a USB-UART chip -> /dev/jgb_rover_mcu, readable by the dialout group.
+# CP210x (most DevKits) and CH340 (cheap clones). These chips have no per-board product name, so
+# the link is created for ANY such device: do not plug two of them in at once.
+# Install:
+#   sudo cp firmware/esp32/99-jgb-rover-esp32.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#   sudo usermod -aG dialout $USER     # then log out and in
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="jgb_rover_mcu", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="jgb_rover_mcu", GROUP="dialout", MODE="0660"
+# ModemManager probes new serial devices with AT commands; keep it away from the board
+ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ENV{ID_MM_DEVICE_IGNORE}="1"
+ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", ENV{ID_MM_DEVICE_IGNORE}="1"

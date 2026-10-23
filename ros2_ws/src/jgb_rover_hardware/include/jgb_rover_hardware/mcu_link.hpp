@@ -39,6 +39,7 @@ public:
   {
     std::string port{"/dev/jgb_rover_mcu"};
     std::string fallback_port{"/dev/ttyACM0"};  // tried when port does not exist ('' = none)
+    int baud{115200};                           // ignored by native USB (Teensy); ESP32: 921600
     rl_config_t config{};
     double telemetry_timeout_s{0.1};
     double reconnect_interval_s{1.0};

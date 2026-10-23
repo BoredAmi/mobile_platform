@@ -16,8 +16,9 @@ public:
   SerialPort(const SerialPort &) = delete;
   SerialPort & operator=(const SerialPort &) = delete;
 
-  // Opens in raw mode, non-blocking. Returns false and sets error() on failure.
-  bool open(const std::string & device);
+  // Opens in raw mode, non-blocking. Returns false and sets error() on failure. The baud rate only
+  // matters for boards behind a USB-UART chip (ESP32 dev boards); native USB (Teensy) ignores it.
+  bool open(const std::string & device, int baud = 115200);
   void close();
   bool is_open() const {return fd_ >= 0;}
 

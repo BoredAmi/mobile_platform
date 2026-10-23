@@ -52,7 +52,7 @@ bool McuLink::try_open()
   if (!exists(device) && exists(opt_.fallback_port)) {
     device = opt_.fallback_port;
   }
-  if (!port_.open(device)) {
+  if (!port_.open(device, opt_.baud)) {
     if (!open_error_logged_) {
       log_(Level::Error, "cannot open " + port_.error() +
         (opt_.fallback_port.empty() ? "" : " (fallback " + opt_.fallback_port + " missing too)"));
@@ -271,7 +271,7 @@ void McuLink::log_status_changes(uint16_t status, bool first)
     if (status & RL_STATUS_IMU_OK) {
       log_(Level::Info, "IMU data OK");
     } else {
-      log_(Level::Error, "IMU not responding (MPU6050 on SDA 18 / SCL 19, address 0x68): gyro reported as 0");
+      log_(Level::Error, "IMU not responding (MPU6050 on SDA 25 / SCL 24, address 0x68): gyro reported as 0");
     }
   }
   if ((changed & RL_STATUS_CMD_TIMEOUT) && (status & RL_STATUS_CMD_TIMEOUT)) {
