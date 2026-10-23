@@ -1,0 +1,10 @@
+# jgb_rover Teensy 4.1 board -> /dev/jgb_rover_mcu (stable name, whatever ttyACM number it gets),
+# readable by the dialout group. Install:
+#   sudo cp firmware/teensy41/99-jgb-rover-mcu.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#   sudo usermod -aG dialout $USER     # then log out and in
+# Uploading also needs PJRC's 00-teensy.rules (see firmware/teensy41/README.md).
+# The product string is set in firmware/teensy41/src/usb_names.c.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="0483", ATTRS{product}=="jgb_rover_mcu", SYMLINK+="jgb_rover_mcu", GROUP="dialout", MODE="0660"
+# ModemManager probes new ttyACM devices with AT commands; keep it away from the board
+ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="0483", ENV{ID_MM_DEVICE_IGNORE}="1"

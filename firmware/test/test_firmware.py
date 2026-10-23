@@ -4,7 +4,7 @@
 
 - the C framing (firmware/protocol) and the Python one (firmware/tools/rover_link.py) produce
   identical frames and decode each other's output;
-- the wheel controller and velocity estimator (firmware/rp2040/src/control.c) against a motor model.
+- the wheel controller and velocity estimator (firmware/common/control.c) against a motor model.
 """
 import os
 import random
@@ -109,7 +109,7 @@ def test_struct_roundtrip():
 
 
 def test_control(tmp_path_factory):
-    src = os.path.join(FW, 'rp2040', 'src')
+    src = os.path.join(FW, 'common')
     binary = compile_c(tmp_path_factory, 'test_control',
                        [os.path.join(HERE, 'test_control.c'), os.path.join(src, 'control.c')],
                        [src, os.path.join(FW, 'protocol')])

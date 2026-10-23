@@ -1,0 +1,7 @@
+{
+  "name": "jgb_control",
+  "version": "1.0.0",
+  "description": "Hardware-independent wheel velocity estimate and PI + feed-forward controller (unit tested on the PC).",
+  "dependencies": {"rover_link": "*"},
+  "build": {"srcFilter": ["+<control.c>"]}
+}

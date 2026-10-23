@@ -30,8 +30,8 @@ bool SerialPort::open(const std::string & device)
   tio.c_cflag |= CLOCAL | CREAD;
   tio.c_cc[VMIN] = 0;
   tio.c_cc[VTIME] = 0;
-  // USB CDC ignores the rate, but the RP2040 SDK reboots into its bootloader at 1200 baud: never
-  // use that one.
+  // USB serial ignores the rate, but some magic rates reboot boards into their bootloader (Teensy:
+  // 134, RP2040 / Arduino: 1200): never use those.
   cfsetispeed(&tio, B115200);
   cfsetospeed(&tio, B115200);
   if (tcsetattr(fd_, TCSANOW, &tio) != 0) {

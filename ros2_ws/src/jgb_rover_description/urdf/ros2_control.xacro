@@ -2,7 +2,7 @@
 <!-- ros2_control system for the two drive wheels. Velocity command, position + velocity state
      (position = encoder count, velocity = derived). The hardware plugin is the only thing that
      changes between simulation and the real robot. Uses properties of jgb_rover.urdf.xacro.
-     On the real robot the MPU6050 is on the same RP2040 board, so it is a sensor of this system
+     On the real robot the MPU6050 is on the same MCU board (Teensy 4.1), so it is a sensor of this system
      too (read by imu_sensor_broadcaster -> /imu/data_raw); in simulation the IMU comes from Gazebo. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
@@ -23,7 +23,7 @@
         <plugin>gz_ros2_control/GazeboSimSystem</plugin>
       </xacro:if>
       <xacro:unless value="$(arg sim_gazebo)">
-        <!-- real robot: RP2040 board over USB (jgb_rover_hardware, firmware/rp2040) -->
+        <!-- real robot: Teensy 4.1 board over USB (jgb_rover_hardware, firmware/teensy41) -->
         <xacro:property name="real" value="${xacro.load_yaml(pkg + '/config/real_hardware.yaml')}"/>
         <xacro:property name="port_arg" value="$(arg serial_port)"/>
         <plugin>$(arg hardware_plugin)</plugin>

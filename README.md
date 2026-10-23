@@ -181,13 +181,14 @@ All need the simulation running (except the first two) and print their result; m
 | `PYTHONNOUSERSITE=1 python3 -m pytest ros2_ws/src/jgb_rover_perception/test` | floor-scan geometry unit tests |
 | `PYTHONNOUSERSITE=1 python3 -m pytest ros2_ws/src/jgb_rover_temperature/test` | MCP9808 conversion, lag compensation, heatmap interpolation |
 | `ros2 run jgb_rover_gazebo check_spawn.py` | settling time, jitter, 4 contacts after spawn |
+| `ros2 run jgb_rover_bringup out_and_back.py` | **real robot**, first drive: 1 m out, 180°, back, 180°; EKF vs wheel odometry, wheel separation / radius hints (`--straight-only`, `--sim`) |
 | `ros2 run jgb_rover_bringup drive_test.py` | 1 m straight and 360° spin: wheel odometry vs ground truth |
 | `ros2 run jgb_rover_bringup eval_odometry.py --check injected` (or `nominal`) | 3 squares + figure-8: wheel-only vs EKF, PASS/FAIL |
 | `ros2 run jgb_rover_bringup check_visual_scan.py` | `/visual_scan` vs ray-cast ground truth while spinning |
 | `ros2 run jgb_rover_bringup waypoint_tour.py` | drives through both rooms with 360° look-arounds |
 | `ros2 run jgb_rover_bringup eval_map.py map.yaml` | saved map vs world SDF: wall-alignment error, overlay PNG |
 | `ros2 run jgb_rover_bringup eval_heatmap.py temperature_heatmap.npz` | saved heatmap vs the world's true temperature field, PASS/FAIL |
-| `PYTHONNOUSERSITE=1 python3 -m pytest firmware/test` | RP2040 firmware: C vs Python protocol framing, wheel speed controller vs a motor model (no board needed) |
+| `PYTHONNOUSERSITE=1 python3 -m pytest firmware/test` | board firmware: C vs Python protocol framing, wheel speed controller vs a motor model (no board needed) |
 | `colcon test --packages-select jgb_rover_hardware` | hardware interface link layer vs a simulated board (`fake_board.py`): handshake, encoder wrap, board reset |
 | `PYTHONNOUSERSITE=1 python3 ros2_ws/src/jgb_rover_gazebo/scripts/gen_world.py` | regenerates the world, markers and posters from `apartment_layout.yaml` |
 
@@ -426,15 +427,15 @@ Measured or observed in simulation:
 
 ## Sim to real
 
-A **Waveshare RP2040-Zero** ([`firmware/rp2040`](firmware/rp2040/README.md)) drives the motors, reads
+A **Teensy 4.1** ([`firmware/teensy41`](firmware/teensy41/README.md)) drives the motors, reads
 the encoders and the MPU6050 and closes the wheel-speed loop; it is connected over USB to the PC now
 and to the Raspberry Pi 4 later. The computer runs ROS 2. What changes and what does not:
 
 | simulation | real robot | notes |
 |------------|------------|-------|
 | Gazebo world, `ros_gz_bridge`, `/clock` | the real world | `use_sim_time:=false` everywhere |
-| `gz_ros2_control/GazeboSimSystem` | `jgb_rover_hardware/JgbRoverSystem` (`sim_gazebo:=false`) | USB link to the RP2040: wheel velocity commands [rad/s] out, encoder positions [rad] (x4: 3960 counts/rev, 1.587 mrad/count) and velocities in, 100 Hz. Settings from `jgb_rover_description/config/real_hardware.yaml`. `diff_drive_controller`, `/cmd_vel`, `/wheel/odom` stay identical |
-| Gazebo IMU → `/imu/data_raw` | MPU6050 on the RP2040 → sensor `imu_sensor` of the same hardware interface → `imu_sensor_broadcaster` → `/imu/data_raw`, frame `imu_link`, 100 Hz | gyro in rad/s, acceleration in m/s² including gravity, `orientation_covariance[0] = -1`. Board mounted X forward, Z up as in the spec (else `IMU_AXIS_MAP` in the firmware) |
+| `gz_ros2_control/GazeboSimSystem` | `jgb_rover_hardware/JgbRoverSystem` (`sim_gazebo:=false`) | USB link to the Teensy: wheel velocity commands [rad/s] out, encoder positions [rad] (x4: 3960 counts/rev, 1.587 mrad/count) and velocities in, 100 Hz. Settings from `jgb_rover_description/config/real_hardware.yaml`. `diff_drive_controller`, `/cmd_vel`, `/wheel/odom` stay identical |
+| Gazebo IMU → `/imu/data_raw` | MPU6050 on the Teensy → sensor `imu_sensor` of the same hardware interface → `imu_sensor_broadcaster` → `/imu/data_raw`, frame `imu_link`, 100 Hz | gyro in rad/s, acceleration in m/s² including gravity, `orientation_covariance[0] = -1`. Board mounted X forward, Z up as in the spec (else `IMU_AXIS_MAP` in the firmware) |
 | Gazebo camera | `v4l2_camera` | see below |
 | `sim_mcp9808` → `/temperature` | `mcp9808_driver` → `/temperature` | see below |
 | `/ground_truth/odom`, `path_recorder` ground-truth path | (none) | evaluation only |
@@ -444,8 +445,8 @@ Unchanged: `robot_state_publisher` + URDF (with `sim_gazebo:=false`), `imu_bias_
 
 **Short version: [`QUICKSTART_REAL_ROBOT.md`](QUICKSTART_REAL_ROBOT.md).**
 
-**Motors, encoders, IMU (RP2040 board).** Wiring, flashing and a bench bring-up without ROS (IMU
-check, motor directions, speed-controller tuning) are in [`firmware/rp2040/README.md`](firmware/rp2040/README.md).
+**Motors, encoders, IMU (Teensy 4.1 board).** Wiring, flashing and a bench bring-up without ROS (IMU
+check, motor directions, speed-controller tuning) are in [`firmware/teensy41/README.md`](firmware/teensy41/README.md).
 Then:
 
 ```bash
@@ -456,7 +457,7 @@ ros2 launch jgb_rover_bringup bringup_real.launch.py                 # + camera,
 
 | argument | default | meaning |
 |----------|---------|---------|
-| `serial_port` | `real_hardware.yaml` | RP2040 device: `/dev/jgb_rover_mcu` (udev rule), falls back to `/dev/ttyACM0` |
+| `serial_port` | `real_hardware.yaml` | Teensy device: `/dev/jgb_rover_mcu` (udev rule), falls back to `/dev/ttyACM0` |
 | `camera`, `video_device`, `camera_info_url` | `true`, `/dev/video0`, `~/.ros/camera_info/webcam.yaml` | `v4l2_camera` |
 | `camera_pitch` | spec | measured camera tilt [rad] |
 | `perception`, `slam`, `aruco`, `slam_scan_matching`, `ekf_imu_accel` | as in the simulation | |
@@ -535,7 +536,7 @@ that on the Pi. If it cannot keep 10 Hz, lower `proc_width/height` or `max_rate`
 
 ```
 robot_spec.yaml                  single source of truth (from CAD)
-firmware/                        RP2040-Zero motor/encoder/IMU board: protocol/, rp2040/ (Pico SDK), tools/ (bench CLI, fake board), test/
+firmware/                        Teensy 4.1 motor/encoder/IMU board: protocol/, common/, teensy41/ (PlatformIO), tools/ (bench CLI, fake board), test/
 meshes/                          original meshes
 docker/                          Dockerfile, compose.yaml, entrypoint, build_ws helper
 results/phase3, results/phase4, results/temperature   evaluation plots, maps, overlays (JSON next to each)
@@ -545,7 +546,7 @@ ros2_ws/src/
   jgb_rover_gazebo/        worlds/ (generated), models/ (markers, posters), config/bridge.yaml,
                            config/apartment_layout.yaml, scripts/gen_world.py, launch/sim.launch.py
   jgb_rover_control/       config/controllers.yaml (spec placeholders), controllers_real.yaml, spec_params.py
-  jgb_rover_hardware/      ros2_control plugin JgbRoverSystem (RP2040 over USB), mcu_link_probe, tests
+  jgb_rover_hardware/      ros2_control plugin JgbRoverSystem (Teensy over USB), mcu_link_probe, tests
   jgb_rover_localization/  imu_bias_calibration node, config/ekf.yaml
   jgb_rover_perception/    visual_floor_scan (+ floor_scan_core.py, tests), aruco_detector
   jgb_rover_temperature/   mcp9808_driver (real I2C), sim_mcp9808, temperature_mapper (+ heatmap_core.py, tests)

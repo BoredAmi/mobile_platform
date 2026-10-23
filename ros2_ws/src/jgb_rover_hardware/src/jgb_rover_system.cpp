@@ -167,7 +167,7 @@ CallbackReturn JgbRoverSystem::on_configure(const rclcpp_lifecycle::State &)
           case McuLink::Level::Error: RCLCPP_ERROR(logger_, "%s", msg.c_str()); break;
         }
       });
-  RCLCPP_INFO(logger_, "connecting to the RP2040 board on %s ...", options_.port.c_str());
+  RCLCPP_INFO(logger_, "connecting to the MCU board on %s ...", options_.port.c_str());
   if (!link_->connect(handshake_timeout_s_)) {
     link_.reset();
     return CallbackReturn::ERROR;
@@ -217,7 +217,7 @@ return_type JgbRoverSystem::read(const rclcpp::Time &, const rclcpp::Duration &)
   const McuState & st = link_->state();
   if (!link_->telemetry_fresh()) {
     RCLCPP_WARN_THROTTLE(logger_, steady_clock_, 2000,
-      "no telemetry from the RP2040 board: wheel velocities and gyro reported as 0");
+      "no telemetry from the MCU board: wheel velocities and gyro reported as 0");
   }
   position_ = st.position;
   velocity_ = st.velocity;

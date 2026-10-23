@@ -84,7 +84,7 @@ bool McuLink::connect(double timeout_s)
   }
   std::string where = port_.is_open() ? open_port_ + " is open but the board did not answer "
     "(firmware not flashed, or another program owns the port?)" : "port not available";
-  log_(Level::Error, "no handshake with the RP2040 board within " + std::to_string(timeout_s) +
+  log_(Level::Error, "no handshake with the MCU board within " + std::to_string(timeout_s) +
     " s: " + where);
   return false;
 }
@@ -189,12 +189,12 @@ void McuLink::handle(uint8_t type, const uint8_t * payload, std::size_t len)
         if (info_.protocol_version != RL_PROTOCOL_VERSION) {
           log_(Level::Error, "board speaks rover_link protocol " +
             std::to_string(info_.protocol_version) + ", this driver " +
-            std::to_string(RL_PROTOCOL_VERSION) + ": flash firmware/rp2040 from this repository");
+            std::to_string(RL_PROTOCOL_VERSION) + ": flash firmware/teensy41 from this repository");
           break;
         }
         if (phase_ == Phase::AwaitInfo) {
           std::ostringstream s;
-          s << "RP2040 board " << hex(info_.board_id, sizeof(info_.board_id)) << ", firmware "
+          s << "MCU board " << hex(info_.board_id, sizeof(info_.board_id)) << ", firmware "
             << (info_.firmware_version >> 8) << "." << (info_.firmware_version & 0xFF) << ", "
             << info_.control_hz << " Hz, IMU WHO_AM_I 0x" << hex(&info_.imu_whoami, 1)
             << (info_.imu_whoami == 0 ? " (NO IMU)" : "")
@@ -214,11 +214,11 @@ void McuLink::handle(uint8_t type, const uint8_t * payload, std::size_t len)
             "real_hardware.yaml");
         }
         phase_ = Phase::Ready;
-        log_(Level::Info, "RP2040 board configured");
+        log_(Level::Info, "MCU board configured");
       }
       break;
     case RL_MSG_LOG:
-      log_(Level::Warn, "[rp2040] " + std::string(reinterpret_cast<const char *>(payload), len));
+      log_(Level::Warn, "[mcu] " + std::string(reinterpret_cast<const char *>(payload), len));
       break;
     default:
       break;
@@ -232,7 +232,7 @@ void McuLink::handle_telemetry(const rl_telemetry_t & t)
   const bool reset = !first && t.seq < last_seq_;
   if (reset) {
     ++resets_;
-    log_(Level::Warn, "RP2040 board reset detected (seq " + std::to_string(last_seq_) + " -> " +
+    log_(Level::Warn, "MCU board reset detected (seq " + std::to_string(last_seq_) + " -> " +
       std::to_string(t.seq) + "), re-sending config");
     phase_ = Phase::AwaitInfo;
     last_request_ = Clock::time_point{};
@@ -271,7 +271,7 @@ void McuLink::log_status_changes(uint16_t status, bool first)
     if (status & RL_STATUS_IMU_OK) {
       log_(Level::Info, "IMU data OK");
     } else {
-      log_(Level::Error, "IMU not responding (MPU6050 on GP6/GP7, address 0x68): gyro reported as 0");
+      log_(Level::Error, "IMU not responding (MPU6050 on SDA 18 / SCL 19, address 0x68): gyro reported as 0");
     }
   }
   if ((changed & RL_STATUS_CMD_TIMEOUT) && (status & RL_STATUS_CMD_TIMEOUT)) {

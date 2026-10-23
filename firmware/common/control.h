@@ -8,6 +8,10 @@
 
 #include "rover_link.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Velocity from the count difference over the last `window` samples. */
 typedef struct {
   int32_t count[RL_MAX_VEL_WINDOW + 1];
@@ -34,5 +38,9 @@ float wheel_ctrl_update(wheel_ctrl_t *c, const rl_config_t *cfg, float target, f
 
 /* Clamp a config received from the host to safe ranges; returns true if it was changed. */
 bool config_sanitize(rl_config_t *cfg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* JGB_CONTROL_H */

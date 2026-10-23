@@ -1,8 +1,9 @@
 """Shared helpers for the evaluation scripts: record odometry tracks and drive simple motions.
 
-All timing uses sim time. Motions are closed loop on one chosen odometry source
-(normally the ground truth, so the robot really drives the requested shape and the other
-sources are judged against it).
+Timing uses the node clock (sim time by default, wall clock with use_sim_time=False on the real
+robot). Motions are closed loop on one chosen odometry source (in simulation normally the ground
+truth, so the robot really drives the requested shape and the other sources are judged against it;
+on the real robot the EKF).
 """
 import math
 import os
@@ -57,10 +58,14 @@ class Track:
         return tuple(np.asarray(v) for v in (self.t, self.x, self.y, self.yaw))
 
 
+class MotionTimeout(RuntimeError):
+    """A motion did not reach its goal in time (stuck wheel, lost odometry); the robot was stopped."""
+
+
 class DriveHarness(Node):
-    def __init__(self, sources: dict, name='drive_harness'):
-        """sources: {label: odometry topic}. 'gt' should be the ground truth."""
-        super().__init__(name, parameter_overrides=[Parameter('use_sim_time', Parameter.Type.BOOL, True)])
+    def __init__(self, sources: dict, name='drive_harness', use_sim_time: bool = True):
+        """sources: {label: odometry topic}. 'gt' should be the ground truth (simulation)."""
+        super().__init__(name, parameter_overrides=[Parameter('use_sim_time', Parameter.Type.BOOL, use_sim_time)])
         spec = load_spec()
         lim = spec['drive']['suggested_limits']
         self.lin_acc = lim['linear_accel']
@@ -112,31 +117,43 @@ class DriveHarness(Node):
             rclpy.spin_once(self, timeout_sec=0.005)
 
     # ------------------------------------------------------------------ motions
-    def straight(self, distance: float, speed: float, ref: str = 'gt', rate: float = 50.0):
-        """Drive `distance` m (sign = direction) measured by source `ref`, then stop."""
+    def _check_timeout(self, t_end):
+        if t_end is not None and self.now_s() > t_end:
+            self.spin_for(0.5)                              # stop
+            raise MotionTimeout('motion did not finish in time')
+
+    def straight(self, distance: float, speed: float, ref: str = 'gt', rate: float = 50.0,
+                 timeout: float = None):
+        """Drive `distance` m (sign = direction) measured by source `ref`, then stop.
+        timeout [s]: stop and raise MotionTimeout if the goal is not reached by then."""
         _, x0, y0, _ = self.tracks[ref].last
         brake = speed ** 2 / (2 * self.lin_acc)
         v = math.copysign(abs(speed), distance)
         next_send = 0.0
+        t_end = None if timeout is None else self.now_s() + timeout
         while rclpy.ok():
             _, x, y, _ = self.tracks[ref].last
             if math.hypot(x - x0, y - y0) >= abs(distance) - brake:
                 break
+            self._check_timeout(t_end)
             if self.now_s() >= next_send:
                 self.send(v, 0.0)
                 next_send = self.now_s() + 1.0 / rate
             rclpy.spin_once(self, timeout_sec=0.005)
         self.spin_for(abs(speed) / self.lin_acc + 0.3)      # brake + settle
 
-    def turn(self, angle: float, rate_rad: float, ref: str = 'gt', rate: float = 50.0):
+    def turn(self, angle: float, rate_rad: float, ref: str = 'gt', rate: float = 50.0,
+             timeout: float = None):
         """Turn in place by `angle` rad (sign = direction) measured by source `ref`, then stop."""
         yaw0 = self.tracks[ref].last[3]
         brake = rate_rad ** 2 / (2 * self.ang_acc)
         w = math.copysign(abs(rate_rad), angle)
         next_send = 0.0
+        t_end = None if timeout is None else self.now_s() + timeout
         while rclpy.ok():
             if abs(self.tracks[ref].last[3] - yaw0) >= abs(angle) - brake:
                 break
+            self._check_timeout(t_end)
             if self.now_s() >= next_send:
                 self.send(0.0, w)
                 next_send = self.now_s() + 1.0 / rate

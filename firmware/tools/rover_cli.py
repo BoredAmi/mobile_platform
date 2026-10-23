@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bench tool for the jgb_rover RP2040 board, without ROS. Needs pyserial (sudo apt install python3-serial).
+"""Bench tool for the jgb_rover motor / IMU board (Teensy 4.1), without ROS. Needs pyserial (sudo apt install python3-serial).
 
 Lift the wheels off the ground for check / pwm / vel / step.
 
@@ -10,7 +10,7 @@ Lift the wheels off the ground for check / pwm / vel / step.
   rover_cli.py pwm 0.3 0.3 [--time 2]   open-loop duty
   rover_cli.py vel 5 5 [--time 3]       closed-loop wheel speed [rad/s]
   rover_cli.py step 6 [--csv f.csv]     speed step response: rise time, overshoot, steady-state error
-  rover_cli.py bootsel                  reboot the board into its USB bootloader (to flash)
+  rover_cli.py bootloader               reboot the board into its USB bootloader (to flash)
 
 Controller gains, directions and timeouts are read from
 ros2_ws/src/jgb_rover_description/config/real_hardware.yaml and sent to the board first; override
@@ -72,7 +72,8 @@ class Link:
             print('note: /dev/jgb_rover_mcu missing (udev rule not installed?), using /dev/ttyACM0',
                   file=sys.stderr)
             port = '/dev/ttyACM0'
-        # the baud rate is ignored by USB CDC, but must never be 1200 (= reboot into the bootloader)
+        # the baud rate is ignored by USB serial, but must never be 134 (Teensy) or 1200: those reboot
+        # boards into their bootloader
         self.ser = serial.Serial(port, 115200, timeout=0.01)
         self.dec = rl.Decoder()
         self.info = None
@@ -205,7 +206,7 @@ def cmd_imu(link, args, cfg):
     az = statistics.fmean(s.accel[2] for s in ok)
     if az < 8.0:
         print('  WARNING: accel z is not ~+9.81: the board is not mounted Z up, fix IMU_AXIS_MAP / '
-              'IMU_AXIS_SIGN in firmware/rp2040/src/config.h')
+              'IMU_AXIS_SIGN in firmware/teensy41/src/config.h')
     print('  robot_spec.yaml imu.sim_noise.gyro_stddev / accel_stddev can be set from the std values above')
 
 
@@ -307,9 +308,10 @@ def cmd_step(link, args, cfg):
         plt.show()
 
 
-def cmd_bootsel(link, args, cfg):
-    link.send(rl.encode(rl.BOOTSEL))
-    print('board rebooting into BOOTSEL: copy the .uf2 to the RPI-RP2 drive (or picotool load -x)')
+def cmd_bootloader(link, args, cfg):
+    link.send(rl.encode(rl.BOOTLOADER))
+    print('board rebooting into its bootloader: run `pio run -t upload` in firmware/teensy41 '
+          '(or load the .hex with the Teensy Loader app)')
 
 
 def main():
@@ -337,13 +339,13 @@ def main():
     p.add_argument('--time', type=float, default=2.0)
     p.add_argument('--csv')
     p.add_argument('--plot', action='store_true')
-    sub.add_parser('bootsel')
+    sub.add_parser('bootloader')
     args = ap.parse_args()
 
     cfg = load_config(args)
     link = Link(args.port or '/dev/ttyACM0')
     {'info': cmd_info, 'monitor': cmd_monitor, 'imu': cmd_imu, 'check': cmd_check, 'pwm': cmd_pwm,
-     'vel': cmd_vel, 'step': cmd_step, 'bootsel': cmd_bootsel}[args.cmd](link, args, cfg)
+     'vel': cmd_vel, 'step': cmd_step, 'bootloader': cmd_bootloader}[args.cmd](link, args, cfg)
 
 
 if __name__ == '__main__':

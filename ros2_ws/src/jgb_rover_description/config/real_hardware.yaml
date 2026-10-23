@@ -1,19 +1,19 @@
 # Values the REAL robot needs that are not in robot_spec.yaml (the counterpart of
 # sim_assumptions.yaml). Used by
 #   - urdf/ros2_control.xacro (sim_gazebo:=false): hardware parameters of jgb_rover_hardware/JgbRoverSystem,
-#     which sends them to the RP2040 board at startup (no reflash needed to change them)
+#     which sends them to the MCU board at startup (no reflash needed to change them)
 #   - firmware/tools/rover_cli.py: the same values for bench tests
 # Encoder counts per revolution come from robot_spec.yaml (encoders.counts_per_output_rev_x4).
 
 mcu:
-  board: Waveshare RP2040-Zero, firmware in firmware/rp2040
-  serial_port: /dev/jgb_rover_mcu   # udev symlink (firmware/rp2040/99-jgb-rover-mcu.rules); else /dev/ttyACM0
+  board: Teensy 4.1, firmware in firmware/teensy41
+  serial_port: /dev/jgb_rover_mcu   # udev symlink (firmware/teensy41/99-jgb-rover-mcu.rules); else /dev/ttyACM0
   telemetry_timeout_s: 0.1          # no telemetry for this long: velocities and gyro reported as 0
   handshake_timeout_s: 3.0          # at startup: wait this long for the board to answer
   cmd_timeout_ms: 250               # the board stops the motors when no command came for this long
 
 # Per-wheel speed controller on the board: duty = kff * target + deadband + kp * err + ki * integral(err).
-# Starting values for a JGB37-520 at 12 V; tune with `rover_cli.py step` (firmware/rp2040/README.md).
+# Starting values for a JGB37-520 at 12 V; tune with `rover_cli.py step` (firmware/teensy41/README.md).
 wheel_controller:
   kff: 0.085            # duty per rad/s: ~1 / no-load speed (11.52 rad/s at 12 V)
   deadband_duty: 0.04   # static friction: smallest duty that turns the wheel on the ground

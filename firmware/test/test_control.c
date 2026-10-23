@@ -1,4 +1,4 @@
-/* Host test of firmware/rp2040/src/control.c against a simple motor model. Run by test_firmware.py.
+/* Host test of firmware/common/control.c against a simple motor model. Run by test_firmware.py.
  * Exit code 0 = all checks passed. */
 #include <math.h>
 #include <stdio.h>

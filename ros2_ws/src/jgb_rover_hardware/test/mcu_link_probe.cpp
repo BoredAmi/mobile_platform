@@ -1,4 +1,4 @@
-// Command-line probe of the RP2040 link layer (McuLink), without ROS.
+// Command-line probe of the MCU board link layer (McuLink), without ROS.
 //
 //   mcu_link_probe <port> [seconds=2] [left_rad_s=0] [right_rad_s=0]
 //

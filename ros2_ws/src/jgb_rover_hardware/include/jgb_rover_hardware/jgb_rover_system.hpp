@@ -1,5 +1,5 @@
 // ros2_control hardware interface for the real jgb_rover: the two drive wheels and the MPU6050,
-// both on the RP2040 board (firmware/rp2040), over USB.
+// both on the MCU board (Teensy 4.1, firmware/teensy41), over USB.
 //
 // Joints (velocity command; position + velocity state): left_wheel_joint, right_wheel_joint.
 // Sensor "imu_sensor": orientation.{x,y,z,w} (always identity, unknown), angular_velocity.{x,y,z},

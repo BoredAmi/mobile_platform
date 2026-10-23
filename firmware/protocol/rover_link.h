@@ -1,13 +1,13 @@
 /*
- * rover_link: binary protocol between the RP2040 motor/IMU board and the ROS 2 computer.
+ * rover_link: binary protocol between the motor / IMU board (Teensy 4.1) and the ROS 2 computer.
  *
- * Shared by the firmware (firmware/rp2040) and the ros2_control hardware interface
+ * Shared by the firmware (firmware/teensy41) and the ros2_control hardware interface
  * (ros2_ws/src/jgb_rover_hardware). firmware/tools/rover_link.py is the Python version; keep the
  * three in sync and bump RL_PROTOCOL_VERSION on any change to a message layout.
  *
  * Frame on the wire:  COBS( type:u8 | payload | crc16:u16 ) 0x00
  *   - crc16 = CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) over type + payload, little-endian
- *   - every multi-byte field is little-endian (RP2040, x86-64 and the Pi's ARM64 all are), floats
+ *   - every multi-byte field is little-endian (Teensy's Cortex-M7, x86-64 and the Pi's ARM64 all are), floats
  *     are IEEE-754 binary32
  *   - COBS removes every 0x00 from the frame, so 0x00 always ends a frame and a receiver that
  *     starts mid-stream resynchronises on the next one
@@ -39,7 +39,7 @@ extern "C" {
 #define RL_MSG_SET_CONFIG 0x03  /* rl_config_t; answered with RL_MSG_CONFIG_ACK */
 #define RL_MSG_PING 0x04        /* no payload; answered with RL_MSG_INFO and RL_MSG_CONFIG */
 #define RL_MSG_STOP 0x05        /* no payload; motors off until the next command */
-#define RL_MSG_BOOTSEL 0x06     /* no payload; reboot into the USB bootloader (for flashing) */
+#define RL_MSG_BOOTLOADER 0x06  /* no payload; reboot into the USB bootloader (for flashing) */
 
 /* ---- message types: MCU -> host ---- */
 #define RL_MSG_TELEMETRY 0x81   /* rl_telemetry_t, every control cycle (100 Hz) */

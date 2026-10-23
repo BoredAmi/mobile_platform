@@ -1,0 +1,6 @@
+{
+  "name": "rover_link",
+  "version": "1.0.0",
+  "description": "jgb_rover board <-> host protocol (COBS + CRC-16 frames). Shared by the firmware, the ROS plugin and the tests.",
+  "build": {"srcFilter": ["+<rover_link.c>"]}
+}

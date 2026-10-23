@@ -1,4 +1,4 @@
-"""Bringup for the REAL jgb_rover: RP2040 board (wheels + MPU6050) over USB through ros2_control,
+"""Bringup for the REAL jgb_rover: Teensy 4.1 board (wheels + MPU6050) over USB through ros2_control,
 IMU bias calibration, EKF, and optionally the USB webcam, visual floor scan and slam_toolbox.
 The same nodes and topics as bringup_sim.launch.py, with wall-clock time. No temperature sensor yet.
 
@@ -111,7 +111,7 @@ def launch_setup(context):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('serial_port', default_value='',
-                              description='RP2040 board; empty = real_hardware.yaml (/dev/jgb_rover_mcu, '
+                              description='MCU board serial port; empty = real_hardware.yaml (/dev/jgb_rover_mcu, '
                                           'falls back to /dev/ttyACM0)'),
         DeclareLaunchArgument('camera', default_value='true', description='USB webcam (v4l2_camera)'),
         DeclareLaunchArgument('video_device', default_value='/dev/video0'),

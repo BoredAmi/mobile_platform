@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fake RP2040 board on a pseudo-terminal: speaks rover_link like the firmware, with ideal wheels.
+"""Fake motor / IMU board on a pseudo-terminal: speaks rover_link like the firmware, with ideal wheels.
 
 For testing the host side without hardware:
     ./fake_board.py                        # prints the device path, e.g. /dev/pts/7

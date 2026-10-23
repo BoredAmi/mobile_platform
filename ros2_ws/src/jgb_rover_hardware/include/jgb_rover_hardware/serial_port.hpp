@@ -1,4 +1,4 @@
-// Minimal non-blocking POSIX serial port for the RP2040's USB CDC device.
+// Minimal non-blocking POSIX serial port for the MCU board's USB serial device.
 #pragma once
 
 #include <cstddef>

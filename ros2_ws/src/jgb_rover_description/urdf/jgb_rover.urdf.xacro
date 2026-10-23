@@ -14,7 +14,7 @@
   <!-- rendered controllers yaml (see jgb_rover_control.spec_params); empty = no gz ros2_control plugin -->
   <xacro:arg name="controllers_file" default=""/>
   <xacro:arg name="hardware_plugin" default="jgb_rover_hardware/JgbRoverSystem"/>
-  <!-- real robot: RP2040 serial port; empty = config/real_hardware.yaml mcu.serial_port -->
+  <!-- real robot: MCU board (Teensy 4.1) serial port; empty = config/real_hardware.yaml mcu.serial_port -->
   <xacro:arg name="serial_port" default=""/>
 
   <!-- ===================== data ===================== -->
