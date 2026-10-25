@@ -217,23 +217,31 @@ uint16_t battery_read_mv(void) {
   if (!(BATTERY_DIVIDER_RATIO > 0.0f)) {
     return 0;
   }
+#if PIN_BATTERY_ADC >= 0
   uint32_t sum = 0;
   for (int i = 0; i < 8; ++i) {
     sum += analogReadMilliVolts(PIN_BATTERY_ADC);  /* factory-calibrated, ADC1 */
   }
   float volts = (float)sum / 8.0f / 1000.0f * BATTERY_DIVIDER_RATIO;
   return (uint16_t)(volts * 1000.0f + 0.5f);
+#else
+  return 0;
+#endif
 }
 
 /* ======================= status LED ======================= */
 
 void status_led_init(void) {
+#if PIN_STATUS_LED >= 0
   pinMode(PIN_STATUS_LED, OUTPUT);
   digitalWrite(PIN_STATUS_LED, LOW);
+#endif
 }
 
 void status_led(bool on) {
+#if PIN_STATUS_LED >= 0
   digitalWrite(PIN_STATUS_LED, on);
+#endif
 }
 
 /* ======================= safety ======================= */

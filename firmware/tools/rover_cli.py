@@ -314,8 +314,11 @@ def cmd_step(link, args, cfg):
 
 def cmd_bootloader(link, args, cfg):
     link.send(rl.encode(rl.BOOTLOADER))
-    print('board rebooting into its bootloader: run `pio run -t upload` in firmware/teensy41 '
-          '(or load the .hex with the Teensy Loader app)')
+    link.ser.flush()
+    time.sleep(0.5)   # closing the port at once drops DTR: some boards then ignore the byte they have not read yet
+    print('board rebooting into its bootloader. Teensy: run `pio run -t upload` in firmware/teensy41. '
+          'RP2040: copy firmware/rp2040/build/jgb_rover_mcu.uf2 to the RPI-RP2 drive. '
+          'ESP32: nothing to do (it only restarts; `pio run -t upload` resets it itself).')
 
 
 def main():

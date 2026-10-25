@@ -21,32 +21,34 @@
 #define LINK_BAUD 921600
 
 /* ---------------- pins (ESP32-WROOM-32 DevKit) ----------------
- *  1 / 3        UART0 TX / RX        host link, do not use
- *  6 - 11       flash                never use
- *  0, 2, 5, 12, 15  strapping pins   avoided, except GPIO2 as the status LED output
- *  34 - 39      input only, no pull-ups
- *  32 / 33      left encoder A / B   PCNT hardware counter
- *  25 / 26      right encoder A / B
- *  16 / 17      left  RPWM / LPWM    BTS7960 (not on WROVER modules: GPIO16/17 are PSRAM there)
- *  18 / 19      right RPWM / LPWM
+ * Encoders and motors sit on one header of the HW-394 (the one with 3V3 and GND); the GY-521 is on
+ * GPIO32 / 33 of the other header, which worked in the wiring test (21 / 22 did not, with the
+ * wiring at hand). 21 / 22 are free:
+ *  1 / 3        UART0 TX / RX        host link (TX0 / RX0), do not use
+ *  16 / 17      left encoder A / B   PCNT hardware counter (RX2 / TX2 labels on the board)
+ *  18 / 19      right encoder A / B
+ *  4  / 5       left  RPWM / LPWM    BTS7960 (not on WROVER modules: GPIO16/17 are PSRAM there)
+ *  15 / 2       right RPWM / LPWM    GPIO2 also drives the on-board LED, which then shows the PWM
  *  23           motor driver enable  R_EN + L_EN of BOTH BTS7960 modules (10k pull-down to GND)
- *  2            on-board LED         status
- *  34           battery voltage through a divider, see BATTERY_*
- *  21 / 22      SDA / SCL (Wire)     MPU6050 (GY-521 has its own pull-ups)
+ *  32 / 33      SDA / SCL (Wire)     MPU6050 (GY-521 has its own pull-ups)
+ *  no status LED, no battery ADC (see PIN_STATUS_LED, PIN_BATTERY_ADC)
+ * 2, 5 and 15 are strapping pins. They are outputs here: the driver is disabled while the chip
+ * boots (pin 23 held low by its pull-down), so the boot-time levels on them do nothing. Inputs
+ * must not sit on them (GPIO2 high at reset breaks uploads).
  */
-#define PIN_LEFT_ENC_A 32
-#define PIN_LEFT_ENC_B 33
-#define PIN_RIGHT_ENC_A 25
-#define PIN_RIGHT_ENC_B 26
-#define PIN_LEFT_IN1 16
-#define PIN_LEFT_IN2 17
-#define PIN_RIGHT_IN1 18
-#define PIN_RIGHT_IN2 19
+#define PIN_LEFT_ENC_A 16
+#define PIN_LEFT_ENC_B 17
+#define PIN_RIGHT_ENC_A 18
+#define PIN_RIGHT_ENC_B 19
+#define PIN_LEFT_IN1 4
+#define PIN_LEFT_IN2 5
+#define PIN_RIGHT_IN1 15
+#define PIN_RIGHT_IN2 2
 #define PIN_MOTOR_ENABLE 23
-#define PIN_STATUS_LED 2
-#define PIN_BATTERY_ADC 34
-#define PIN_I2C_SDA 21
-#define PIN_I2C_SCL 22
+#define PIN_STATUS_LED -1          /* -1 = none. GPIO2 (on-board LED) is a motor pin now */
+#define PIN_BATTERY_ADC -1         /* -1 = none. Needs an ADC1 pin (32-39); 34-39 are input only */
+#define PIN_I2C_SDA 32
+#define PIN_I2C_SCL 33
 
 /* ---------------- motor driver ----------------
  * Two BTS7960 (IBT-2) modules, one per motor: PWM on IN1 (RPWM) or IN2 (LPWM), the other low.
@@ -74,7 +76,8 @@
 #define IMU_AXIS_SIGN {1, 1, 1}
 
 /* ---------------- battery (optional) ---------------- */
-/* 12 V AGM: 100k (to battery +) / 22k (to GND) -> 13.8 V reads 2.49 V. 0 = not fitted. */
+/* 12 V AGM: 100k (to battery +) / 22k (to GND) -> 13.8 V reads 2.49 V. 0 = not fitted. Needs
+ * PIN_BATTERY_ADC on an ADC1 pin (32-39). */
 #define BATTERY_DIVIDER_RATIO 0.0f /* (R1 + R2) / R2, e.g. 5.545f for 100k / 22k */
 
 /* ---------------- defaults until the host sends its config ---------------- */

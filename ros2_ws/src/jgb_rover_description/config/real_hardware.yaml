@@ -28,6 +28,6 @@ wheel_controller:
 wiring:
   invert_left_motor: false
   invert_right_motor: true
-  invert_left_encoder: false
-  invert_right_encoder: true
+  invert_left_encoder: true
+  invert_right_encoder: false
   idle_brake: true      # zero duty = short brake (true) or coast (false)
