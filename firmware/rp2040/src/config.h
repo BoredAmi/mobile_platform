@@ -16,38 +16,38 @@
 #define WATCHDOG_TIMEOUT_MS 200  /* hardware watchdog: reboot (motors off) if the loop hangs */
 
 /* ---------------- pins (RP2040-Zero edge pins) ----------------
- *  GP0  / GP1   UART0 TX / RX        reserved (debug or a UART link to the Pi later)
+ *  GP26 / GP27  left  RPWM / LPWM    (IN1 / IN2 in MOTOR_DRIVER_PWM_DIR), same PWM slice, on the PWM edge
  *  GP2  / GP3   left encoder A / B   must be consecutive (PIO), A first
  *  GP4  / GP5   right encoder A / B
  *  GP6  / GP7   I2C1 SDA / SCL       MPU6050 (GY-521 has its own pull-ups)
  *  GP8          MPU6050 INT          not used yet
- *  GP9          motor driver enable  R_EN + L_EN of BOTH BTS7960 modules (10k pull-down to GND)
- *  GP10 / GP11  left / right PWM     (MOTOR_DRIVER_PWM_DIR only) unused with the BTS7960
- *  GP12 / GP13  left  RPWM / LPWM    (IN1 / IN2 in MOTOR_DRIVER_PWM_DIR)
- *  GP14 / GP15  right RPWM / LPWM
+ *  GP8          motor driver enable  R_EN + L_EN of BOTH BTS7960 modules (10k pull-down to GND)
+ *  GP14 / GP15  right RPWM / LPWM    (IN1 / IN2 in MOTOR_DRIVER_PWM_DIR)
+ *  GP0  / GP1   left / right PWM     (MOTOR_DRIVER_PWM_DIR only) unused with the BTS7960; the UART is not used
+ *  GP9 - GP13 are deliberately not used (bottom edge, hard to reach)
  *  GP16         on-board WS2812 status LED
- *  GP26         battery voltage (ADC0) through a divider, see BATTERY_*
+ *  GP28         battery voltage (ADC2) through a divider, see BATTERY_*
  */
 #define PIN_LEFT_ENC_A 2
 #define PIN_RIGHT_ENC_A 4
 #define PIN_I2C_SDA 6
 #define PIN_I2C_SCL 7
 #define IMU_I2C i2c1
-#define PIN_MOTOR_ENABLE 9
-#define PIN_LEFT_PWM 10
-#define PIN_RIGHT_PWM 11
-#define PIN_LEFT_IN1 12
-#define PIN_LEFT_IN2 13
+#define PIN_MOTOR_ENABLE 8
+#define PIN_LEFT_PWM 0
+#define PIN_RIGHT_PWM 1
+#define PIN_LEFT_IN1 26
+#define PIN_LEFT_IN2 27
 #define PIN_RIGHT_IN1 14
 #define PIN_RIGHT_IN2 15
 #define PIN_STATUS_LED 16
-#define PIN_BATTERY_ADC 26
+#define PIN_BATTERY_ADC 28
 
 /* ---------------- motor driver ----------------
  * MOTOR_DRIVER_PWM_DIR: speed on PWM, direction on IN1/IN2 (TB6612FNG, L298N with ENA/ENB = PWM).
  *   forward IN1=1 IN2=0, reverse IN1=0 IN2=1, brake IN1=IN2=1, coast IN1=IN2=0.
  * MOTOR_DRIVER_PWM_PWM: PWM on IN1 or IN2, the other low (DRV8833, DRV8871, BTS7960 RPWM/LPWM).
- *   the PWM pins (GP10/11) are unused; brake = both high, coast = both low. */
+ *   the PWM pins (GP0/GP1) are unused; brake = both high, coast = both low. */
 #define MOTOR_DRIVER_PWM_DIR 1
 #define MOTOR_DRIVER_PWM_PWM 2
 #define MOTOR_DRIVER MOTOR_DRIVER_PWM_PWM  /* two BTS7960 (IBT-2) modules, one per motor */

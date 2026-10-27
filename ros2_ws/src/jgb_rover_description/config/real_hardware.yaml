@@ -27,7 +27,7 @@ wheel_controller:
 # and encoder are usually inverted. Check with `rover_cli.py check` (wheels off the ground).
 wiring:
   invert_left_motor: false
-  invert_right_motor: true
+  invert_right_motor: false
   invert_left_encoder: true
   invert_right_encoder: false
   idle_brake: true      # zero duty = short brake (true) or coast (false)

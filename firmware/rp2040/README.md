@@ -28,7 +28,7 @@ sent to the board on every connect, so tuning needs no reflash.
 - **Command timeout** (`cmd_timeout_ms`, 250 ms): no velocity command → motors off (driver
   disabled), integrators cleared. Closing the serial port stops the motors immediately.
 - **Hardware watchdog** (200 ms): if the loop hangs the chip resets; all motor pins go back to
-  inputs. Put a **10 kΩ pull-down from GP9 to GND**: it holds R_EN / L_EN of both BTS7960 modules
+  inputs. Put a **10 kΩ pull-down from GP8 to GND**: it holds R_EN / L_EN of both BTS7960 modules
   low, so both bridges stay off while the RP2040 boots, is being flashed or is unplugged.
 - No commands are sent by the host until the board has confirmed the config from
   `real_hardware.yaml`, so a mirrored motor never runs with the wrong default direction.
@@ -45,15 +45,13 @@ All signals are 3.3 V. **The RP2040 is not 5 V tolerant.**
 | GP4, GP5 | right encoder A, B | |
 | 3V3, GND | encoder VCC, GND (both motors) | **power the encoders from 3V3**: their outputs are pulled up to their own supply |
 | GP6 (SDA), GP7 (SCL) | GY-521 SDA, SCL | I2C1, 400 kHz. GY-521 VCC → 3V3, AD0 → GND (address 0x68); the GY-521 has its own pull-ups |
-| GP8 | GY-521 INT | optional, not used yet |
-| GP9 | R_EN **and** L_EN of **both** BTS7960 modules (4 pins tied together) | high = bridges enabled; 10 kΩ pull-down to GND |
-| GP12, GP13 | left module RPWM, LPWM | |
+| GP8 | R_EN **and** L_EN of **both** BTS7960 modules (4 pins tied together) | high = bridges enabled; 10 kΩ pull-down to GND |
+| GP26, GP27 | left module RPWM, LPWM | PWM wires on this edge, away from the encoders |
 | GP14, GP15 | right module RPWM, LPWM | |
 | 3V3 | VCC of both modules | logic supply: use 3.3 V, not 5 V (see below) |
 | (none) | R_IS, L_IS | leave unconnected for now (see below) |
-| GP10, GP11 | free | only used with `MOTOR_DRIVER_PWM_DIR` drivers |
-| GP26 | battery + through 100 kΩ / 22 kΩ divider | optional; set `BATTERY_DIVIDER_RATIO` |
-| GP0, GP1 | free | reserved for a UART link / debug |
+| GP9 - GP13 | **not used** | bottom edge, kept free on purpose (GP0 / GP1 are the PWM pins of `MOTOR_DRIVER_PWM_DIR` drivers) |
+| GP28 | battery + through 100 kΩ / 22 kΩ divider | optional; set `BATTERY_DIVIDER_RATIO` |
 | GP16 | on-board RGB LED | status, see below |
 | GND | module GND pins, battery − | common ground |
 | USB-C | PC / Pi | power + data |
@@ -62,7 +60,7 @@ All signals are 3.3 V. **The RP2040 is not 5 V tolerant.**
 (6–27 V, so the 12 V AGM is fine), M+ / M− to the motor. Firmware setting
 `MOTOR_DRIVER_PWM_PWM` in [`src/config.h`](src/config.h) (the default):
 
-| wheel command | RPWM | LPWM | R_EN = L_EN (GP9) |
+| wheel command | RPWM | LPWM | R_EN = L_EN (GP8) |
 |---------------|------|------|-------------------|
 | forward (positive duty) | PWM 20 kHz | low | high |
 | reverse | low | PWM | high |
@@ -71,18 +69,18 @@ All signals are 3.3 V. **The RP2040 is not 5 V tolerant.**
 | stopped by timeout / no host / boot | low | low | **low** (both half-bridges off: coast) |
 
 - Despite some shop descriptions, **R_EN / L_EN do not set the direction**: they enable the two
-  half-bridges. Tie all four together to GP9. Direction comes from which of RPWM / LPWM carries the PWM.
+  half-bridges. Tie all four together to GP8. Direction comes from which of RPWM / LPWM carries the PWM.
 - **VCC = 3.3 V.** The module buffers its inputs with a 74HC244 powered from VCC; at VCC = 5 V a
   3.3 V "high" is below its guaranteed input-high level.
 - **R_IS / L_IS** are current-sense / fault outputs of the BTS7960. In a fault they can rise above
   3.3 V, so do not wire them straight to an RP2040 pin. Over-current and over-temperature
   protection works inside the chip anyway. Reading them later needs a divider to an ADC pin
-  (GP27–GP29 are free).
+  (GP29 is free).
 - If the "forward" wheel turns backwards, either swap M+ / M− or set `invert_*_motor` in
   `real_hardware.yaml` (`rover_cli.py check` tells you which).
 
 Other drivers: `MOTOR_DRIVER_PWM_DIR` for one PWM plus IN1/IN2 per motor (TB6612FNG, L298N;
-PWM on GP10/GP11, IN1/IN2 on GP12–GP15). For an L298N lower `MOTOR_PWM_FREQ_HZ` to a few kHz.
+PWM on GP0/GP1, IN1/IN2 on GP26, GP27, GP14, GP15). For an L298N lower `MOTOR_PWM_FREQ_HZ` to a few kHz.
 
 **IMU orientation.** `robot_spec.yaml` places the GY-521 with its X arrow forward and Z up. If it is
 mounted differently, set `IMU_AXIS_MAP` / `IMU_AXIS_SIGN` in `config.h` (board axes → `imu_link`);
@@ -214,7 +212,7 @@ partial frame. All values are little-endian.
 Positive wheel values always mean "this wheel drives the robot forward" (the URDF wheel joints both
 rotate about +Y). Directions are fixed on the board with the `invert_*` flags.
 
-A UART link to the Pi (GP0/GP1) would only need a different byte transport in `main.c`; the
+A UART link to the Pi (it would need two free pins now, GP0/GP1 are free) would only need a different byte transport in `main.c`; the
 framing already copes with a lossy link.
 
 ## Files
