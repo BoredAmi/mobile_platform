@@ -1,0 +1,23 @@
+# Tracer WEB007 intrinsics at 640x360 (the size v4l2_camera opens it with), calibrated 2026-10-28:
+# 8x6 inner-corner checkerboard (25 mm squares) on a laptop screen, 32 frames, cv2.calibrateCamera,
+# RMS reprojection error 0.086 px, horizontal FOV 66 deg. camera_name is the name the driver reports.
+image_width: 640
+image_height: 360
+camera_name: "web_camera:_uvc_camera"
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [493.27851, 0, 300.80598, 0, 492.73268, 182.37931, 0, 0, 1]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [-0.36854624, 0.15599863, 0.00062460144, 0.00085038553, -0.053093054]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [493.27851, 0, 300.80598, 0, 0, 492.73268, 182.37931, 0, 0, 0, 1, 0]

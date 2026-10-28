@@ -5,13 +5,15 @@ The same nodes and topics as bringup_sim.launch.py, with wall-clock time. No tem
   ros2 launch jgb_rover_bringup bringup_real.launch.py                      # everything
   ros2 launch jgb_rover_bringup bringup_real.launch.py camera:=false        # drive + odometry only
   ros2 launch jgb_rover_bringup bringup_real.launch.py serial_port:=/dev/ttyACM0
+  ros2 launch jgb_rover_bringup bringup_real.launch.py slow:=true             # walking pace
 
 Keep the robot still for the first 3 s (gyro bias calibration).
 """
 import os
 
 from ament_index_python.packages import get_package_share_directory
-from jgb_rover_control.spec_params import render, wall_clock
+import yaml
+from jgb_rover_control.spec_params import load_spec, render, wall_clock
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetEnvironmentVariable
 from launch.substitutions import Command, LaunchConfiguration
@@ -21,6 +23,21 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 def as_bool(context, name) -> bool:
     return LaunchConfiguration(name).perform(context).lower() in ('true', '1', 'yes')
+
+
+def with_slow_limits(param_path: str) -> str:
+    """diff_drive_controller velocity / acceleration limits from robot_spec.yaml drive.slow_limits."""
+    lim = load_spec()['drive']['slow_limits']
+    with open(param_path) as f:
+        data = yaml.safe_load(f)
+    p = data['diff_drive_controller']['ros__parameters']
+    for axis, vel, acc in (('linear.x', 'linear', 'linear_accel'), ('angular.z', 'angular', 'angular_accel')):
+        p[f'{axis}.max_velocity'], p[f'{axis}.min_velocity'] = lim[vel], -lim[vel]
+        p[f'{axis}.max_acceleration'], p[f'{axis}.min_acceleration'] = lim[acc], -lim[acc]
+    out = os.path.join(os.path.dirname(param_path), 'slow_' + os.path.basename(param_path))
+    with open(out, 'w') as f:
+        yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+    return out
 
 
 def launch_setup(context):
@@ -44,6 +61,8 @@ def launch_setup(context):
     # beats a {'use_sim_time': False} dict (that one is a '/**' wildcard): wall_clock() rewrites them.
     # controllers_real.yaml adds the IMU broadcaster (later files override earlier ones).
     controllers = wall_clock(render(os.path.join(ctrl_share, 'config', 'controllers.yaml')))
+    if as_bool(context, 'slow'):
+        controllers = with_slow_limits(controllers)
     control_node = Node(
         package='controller_manager', executable='ros2_control_node', output='screen',
         parameters=[{'robot_description': robot_description}, controllers,
@@ -75,12 +94,19 @@ def launch_setup(context):
 
     camera = as_bool(context, 'camera')
     if camera:
+        # open the camera at the size it was calibrated at (the WEB007 falls back to 640x360 anyway)
+        camera_info_url = LaunchConfiguration('camera_info_url').perform(context)
+        image_size = [640, 480]
+        if camera_info_url.startswith('file://') and os.path.exists(camera_info_url[len('file://'):]):
+            with open(camera_info_url[len('file://'):]) as f:
+                info = yaml.safe_load(f)
+            image_size = [info['image_width'], info['image_height']]
         actions.append(Node(
             package='v4l2_camera', executable='v4l2_camera_node', name='camera', output='screen',
             parameters=[{'video_device': LaunchConfiguration('video_device').perform(context),
-                         'image_size': [640, 480],
+                         'image_size': image_size,
                          'camera_frame_id': 'camera_optical_frame',
-                         'camera_info_url': LaunchConfiguration('camera_info_url').perform(context)}],
+                         'camera_info_url': camera_info_url}],
             remappings=[('image_raw', '/camera/image_raw'), ('camera_info', '/camera/camera_info')]))
     if camera and as_bool(context, 'perception'):
         per_share = get_package_share_directory('jgb_rover_perception')
@@ -116,8 +142,9 @@ def generate_launch_description():
         DeclareLaunchArgument('camera', default_value='true', description='USB webcam (v4l2_camera)'),
         DeclareLaunchArgument('video_device', default_value='/dev/video0'),
         DeclareLaunchArgument('camera_info_url',
-                              default_value='file://' + os.path.expanduser('~/.ros/camera_info/webcam.yaml'),
-                              description='calibration from camera_calibration (see README)'),
+                              default_value='file://' + os.path.join(
+                                  get_package_share_directory('jgb_rover_description'), 'config', 'webcam.yaml'),
+                              description='camera calibration (jgb_rover_description/config/webcam.yaml)'),
         DeclareLaunchArgument('camera_pitch', default_value='',
                               description='rad down; empty = robot_spec.yaml (0.26). Measure it on the robot'),
         DeclareLaunchArgument('perception', default_value='true', description='visual floor scan (needs camera)'),
@@ -126,6 +153,8 @@ def generate_launch_description():
         DeclareLaunchArgument('slam_scan_matching', default_value='false'),
         DeclareLaunchArgument('aruco', default_value='false', description='ArUco landmark detector'),
         DeclareLaunchArgument('ekf_imu_accel', default_value='false'),
+        DeclareLaunchArgument('slow', default_value='false',
+                              description='robot_spec.yaml drive.slow_limits instead of suggested_limits'),
         DeclareLaunchArgument('rviz', default_value='false', description='RViz (off: the Pi has no display)'),
         SetEnvironmentVariable('PYTHONNOUSERSITE', '1'),
         OpaqueFunction(function=launch_setup),

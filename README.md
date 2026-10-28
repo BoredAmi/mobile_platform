@@ -460,7 +460,8 @@ ros2 launch jgb_rover_bringup bringup_real.launch.py                 # + camera,
 | argument | default | meaning |
 |----------|---------|---------|
 | `serial_port` | `real_hardware.yaml` | board device: `/dev/jgb_rover_mcu` (udev rule), falls back to `/dev/ttyACM0`; `baud_rate` next to it matters for the ESP32 only (921600) |
-| `camera`, `video_device`, `camera_info_url` | `true`, `/dev/video0`, `~/.ros/camera_info/webcam.yaml` | `v4l2_camera` |
+| `camera`, `video_device`, `camera_info_url` | `true`, `/dev/video0`, `jgb_rover_description/config/webcam.yaml` | `v4l2_camera`; opened at the calibration's image size |
+| `slow` | `false` | `robot_spec.yaml` `drive.slow_limits` (0.15 m/s, 0.5 rad/s) instead of `suggested_limits`, for walking next to it |
 | `camera_pitch` | spec | measured camera tilt [rad] |
 | `perception`, `slam`, `aruco`, `slam_scan_matching`, `ekf_imu_accel` | as in the simulation | |
 | `rviz` | `false` | RViz (run it on a laptop when the Pi drives) |

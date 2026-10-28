@@ -31,6 +31,7 @@ drive:
   stall_torque: 1.18             # N m (12 kg cm), use as joint effort limit
   max_linear_speed_no_load: 0.50 # m/s
   suggested_limits: {linear: 0.40, angular: 2.0, linear_accel: 1.0, angular_accel: 4.0}
+  slow_limits: {linear: 0.15, angular: 0.5, linear_accel: 0.3, angular_accel: 1.0}   # bringup_real slow:=true, walking next to it
 
 encoders:                        # AB Hall encoder on the motor shaft, before the gearbox
   ppr_motor_shaft: 11
