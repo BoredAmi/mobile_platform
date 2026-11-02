@@ -1,9 +1,11 @@
 """Bringup for the REAL jgb_rover: Teensy 4.1 board (wheels + MPU6050) over USB through ros2_control,
-IMU bias calibration, EKF, and optionally the USB webcam, visual floor scan and slam_toolbox.
+IMU bias calibration, EKF, and optionally the camera (USB webcam or RealSense D435), the floor scan
+and slam_toolbox.
 The same nodes and topics as bringup_sim.launch.py, with wall-clock time. No temperature sensor yet.
 
   ros2 launch jgb_rover_bringup bringup_real.launch.py                      # everything
   ros2 launch jgb_rover_bringup bringup_real.launch.py camera:=false        # drive + odometry only
+  ros2 launch jgb_rover_bringup bringup_real.launch.py camera_type:=d435    # RealSense depth scan
   ros2 launch jgb_rover_bringup bringup_real.launch.py serial_port:=/dev/ttyACM0
   ros2 launch jgb_rover_bringup bringup_real.launch.py slow:=true             # walking pace
 
@@ -15,7 +17,8 @@ from ament_index_python.packages import get_package_share_directory
 import yaml
 from jgb_rover_control.spec_params import load_spec, render, wall_clock
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, SetEnvironmentVariable
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -45,10 +48,12 @@ def launch_setup(context):
     ctrl_share = get_package_share_directory('jgb_rover_control')
     loc_share = get_package_share_directory('jgb_rover_localization')
     wall = {'use_sim_time': False}
+    d435 = LaunchConfiguration('camera_type').perform(context) == 'd435'
 
     robot_description = ParameterValue(Command(
         ['xacro ', os.path.join(desc_share, 'urdf', 'jgb_rover.urdf.xacro'),
          ' sim_gazebo:=false',
+         ' camera_model:=', 'd435' if d435 else 'webcam',
          ' camera_pitch:=', LaunchConfiguration('camera_pitch'),
          ' serial_port:=', LaunchConfiguration('serial_port')]),
         value_type=str)
@@ -93,7 +98,22 @@ def launch_setup(context):
     actions = [rsp, control_node, *spawners, imu_bias, ekf]
 
     camera = as_bool(context, 'camera')
-    if camera:
+    if camera and d435:
+        # realsense2_camera (apt: ros-humble-realsense2-camera) publishes camera_depth_frame ... below
+        # camera_link, which the URDF places on the mount. Depth only: the floor scan needs nothing else.
+        rs_launch = os.path.join(get_package_share_directory('realsense2_camera'), 'launch', 'rs_launch.py')
+        actions.append(IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(rs_launch),
+            launch_arguments={
+                'camera_name': 'camera',
+                'enable_depth': 'true', 'enable_color': LaunchConfiguration('d435_color'),
+                'enable_infra1': 'false', 'enable_infra2': 'false', 'enable_gyro': 'false',
+                'enable_accel': 'false', 'pointcloud.enable': 'false', 'align_depth.enable': 'false',
+                'depth_module.profile': LaunchConfiguration('d435_depth_profile'),
+                'rgb_camera.profile': LaunchConfiguration('d435_color_profile'),
+                'initial_reset': 'true',      # a D435 left in a bad state by a killed process
+            }.items()))
+    elif camera:
         # open the camera at the size it was calibrated at (the WEB007 falls back to 640x360 anyway)
         camera_info_url = LaunchConfiguration('camera_info_url').perform(context)
         image_size = [640, 480]
@@ -110,11 +130,16 @@ def launch_setup(context):
             remappings=[('image_raw', '/camera/image_raw'), ('camera_info', '/camera/camera_info')]))
     if camera and as_bool(context, 'perception'):
         per_share = get_package_share_directory('jgb_rover_perception')
-        actions.append(Node(
-            package='jgb_rover_perception', executable='visual_floor_scan', output='screen',
-            parameters=[os.path.join(per_share, 'config', 'visual_floor_scan.yaml'),
-                        os.path.join(per_share, 'config', 'visual_floor_scan_real.yaml'), wall]))
-        if as_bool(context, 'aruco'):
+        if d435:
+            actions.append(Node(
+                package='jgb_rover_perception', executable='depth_floor_scan', output='screen',
+                parameters=[os.path.join(per_share, 'config', 'depth_floor_scan.yaml'), wall]))
+        else:
+            actions.append(Node(
+                package='jgb_rover_perception', executable='visual_floor_scan', output='screen',
+                parameters=[os.path.join(per_share, 'config', 'visual_floor_scan.yaml'),
+                            os.path.join(per_share, 'config', 'visual_floor_scan_real.yaml'), wall]))
+        if as_bool(context, 'aruco') and not d435:
             actions.append(Node(
                 package='jgb_rover_perception', executable='aruco_detector', output='screen',
                 parameters=[os.path.join(per_share, 'config', 'aruco_detector.yaml'),
@@ -140,7 +165,11 @@ def generate_launch_description():
         DeclareLaunchArgument('serial_port', default_value='',
                               description='MCU board serial port; empty = real_hardware.yaml (/dev/jgb_rover_mcu, '
                                           'falls back to /dev/ttyACM0)'),
-        DeclareLaunchArgument('camera', default_value='true', description='USB webcam (v4l2_camera)'),
+        DeclareLaunchArgument('camera', default_value='true', description='camera + floor scan'),
+        DeclareLaunchArgument('camera_type', default_value='webcam', description='webcam (v4l2_camera) | d435'),
+        DeclareLaunchArgument('d435_depth_profile', default_value='640x480x15', description='WxHxFPS'),
+        DeclareLaunchArgument('d435_color', default_value='false', description='D435 colour stream (not used yet)'),
+        DeclareLaunchArgument('d435_color_profile', default_value='640x480x15'),
         DeclareLaunchArgument('video_device', default_value='/dev/video0'),
         DeclareLaunchArgument('camera_info_url',
                               default_value='file://' + os.path.join(

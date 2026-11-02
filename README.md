@@ -460,6 +460,7 @@ ros2 launch jgb_rover_bringup bringup_real.launch.py                 # + camera,
 | argument | default | meaning |
 |----------|---------|---------|
 | `serial_port` | `real_hardware.yaml` | board device: `/dev/jgb_rover_mcu` (udev rule), falls back to `/dev/ttyACM0`; `baud_rate` next to it matters for the ESP32 only (921600) |
+| `camera_type`, `d435_depth_profile` | `webcam`, `640x480x15` | `d435`: RealSense via `realsense2_camera` + `depth_floor_scan` (depth image to `/visual_scan`) instead of the webcam |
 | `camera`, `video_device`, `camera_info_url` | `true`, `/dev/video0`, `jgb_rover_description/config/webcam.yaml` | `v4l2_camera`; opened at the calibration's image size |
 | `slow` | `false` | `robot_spec.yaml` `drive.slow_limits` (0.15 m/s, 0.5 rad/s) instead of `suggested_limits`, for walking next to it |
 | `camera_pitch` | spec | measured camera tilt [rad] |
@@ -551,7 +552,7 @@ ros2_ws/src/
   jgb_rover_control/       config/controllers.yaml (spec placeholders), controllers_real.yaml, spec_params.py
   jgb_rover_hardware/      ros2_control plugin JgbRoverSystem (Teensy over USB), mcu_link_probe, tests
   jgb_rover_localization/  imu_bias_calibration node, config/ekf.yaml
-  jgb_rover_perception/    visual_floor_scan (+ floor_scan_core.py, tests), aruco_detector
+  jgb_rover_perception/    visual_floor_scan (+ floor_scan_core.py, tests), depth_floor_scan (D435, depth_scan_core.py), aruco_detector
   jgb_rover_temperature/   mcp9808_driver (real I2C), sim_mcp9808, temperature_mapper (+ heatmap_core.py, tests)
   jgb_rover_bringup/       launch/bringup_sim.launch.py, launch/bringup_real.launch.py, config/slam_toolbox.yaml, rviz/sim.rviz,
                            scripts/ (tests, evaluation, tour, path recorder)

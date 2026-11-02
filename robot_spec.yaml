@@ -71,6 +71,18 @@ camera:                          # Tracer WEB007 USB webcam
   sim: {width: 640, height: 480, fps: 30, horizontal_fov: 1.745, noise_stddev: 0.007, clip: [0.05, 10.0]}
   closest_visible_floor_at_15deg_tilt: 0.15   # m in front of the lens
 
+camera_d435:                     # Intel RealSense D435 on the printed mount (replaces the webcam on the real robot)
+  frame: camera_link             # same frame name as the webcam; realsense2_camera publishes camera_depth_* etc. below it
+  # camera_link = depth imager origin ~4 mm behind the front glass. The depth imager is 17.5 mm off the
+  # camera centre (ignored). Mount: 9b_realsense_d435_mount.stl, camera back against the plate x = 0.088,
+  # screw holes (43 mm apart) 50 mm above the mount base, mount base on the deck tab (top z = 0.196).
+  # ASSUMED from the mesh and chassis_printed.stl: check x and z on the robot.
+  origin_in_base_footprint: [0.109, 0.0, 0.246]
+  pitch_down_default: 0.0        # rad; the mount plate is vertical, the camera looks level
+  body: {size: [0.025, 0.090, 0.025], centre_in_camera_link: [-0.0085, 0.0, 0.0], mass: 0.072}   # x, y, z
+  mount: {mesh: 9b_realsense_d435_mount.stl, scale: 0.001, base_z: 0.196}   # mesh is in mm, in base_footprint x / y
+  real_spec: {depth_resolution: 640x480, fps: 15, depth_hfov_deg: 87, depth_vfov_deg: 58, depth_min_m: 0.2, usb: "3.0 (blue port)"}
+
 temperature_sensor:              # Adafruit 1782 breakout, MCP9808 (I2C), ambient air temperature
   frame: temp_sensor_link
   origin_in_base_footprint: [-0.100, 0.060, 0.215]   # PLACEHOLDER: rear of the deck, +Y half, on a
@@ -109,6 +121,7 @@ meshes:                          # visual only, metres
   battery.stl: base_footprint
   breadboard.stl: base_footprint
   webcam.stl: base_footprint
+  9b_realsense_d435_mount.stl: base_footprint   # D435 holder (mm! scaled 0.001 in the URDF), real robot only
   drive_unit_left.stl: base_footprint   # motor + bracket + coupler, static
   drive_unit_right.stl: base_footprint
   caster_front.stl: base_footprint      # static visual (swivel not modelled)

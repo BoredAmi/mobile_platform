@@ -1,0 +1,19 @@
+# depth_floor_scan: RealSense D435 depth image -> LaserScan on /visual_scan (same topic as the webcam scan).
+depth_floor_scan:
+  ros__parameters:
+    depth_topic: /camera/depth/image_rect_raw
+    camera_info_topic: /camera/depth/camera_info
+    scan_topic: /visual_scan
+    base_frame: base_footprint
+    scan_frame: visual_scan_link       # ground projection of the camera (URDF)
+    max_rate: 10.0                     # Hz; slower frames are dropped, never queued
+    pixel_stride: 4                    # 640x480 -> 160x120 rays
+    num_beams: 90                      # beam width (~1 deg) must exceed the ray spacing of the stride
+    range_min: 0.15                    # m, as the webcam scan (slam_toolbox min_laser_range 0.16)
+    range_max: 2.5                     # m, as the webcam scan (slam_toolbox max_laser_range)
+    min_obstacle_height: 0.03          # m above the floor; lower is floor, tile joints, depth noise
+    max_obstacle_height: 0.30          # m; robot_spec height_to_camera_top 0.276 + margin
+    depth_min: 0.2                     # m; D435 cannot measure closer at 640x480
+    depth_max: 3.0
+    no_obstacle_margin: 0.05
+    unobserved_value: 0.0

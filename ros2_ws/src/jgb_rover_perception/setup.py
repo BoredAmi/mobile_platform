@@ -17,12 +17,13 @@ setup(
     zip_safe=True,
     maintainer='ami',
     maintainer_email='azmozgame@gmail.com',
-    description='Visual floor scan and ArUco landmarks for jgb_rover.',
+    description='Visual / depth floor scan and ArUco landmarks for jgb_rover.',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'visual_floor_scan = jgb_rover_perception.visual_floor_scan:main',
+            'depth_floor_scan = jgb_rover_perception.depth_floor_scan:main',
             'aruco_detector = jgb_rover_perception.aruco_detector:main',
         ],
     },

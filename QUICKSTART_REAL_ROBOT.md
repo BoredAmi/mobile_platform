@@ -138,6 +138,22 @@ ros2 topic echo /odometry/filtered --field pose.pose.position   # changes as you
 With the camera (calibrate it first, see the main README): drop `camera:=false` to also get the
 floor scan and the SLAM map.
 
+### RealSense D435 instead of the webcam
+
+Print `meshes/9b_realsense_d435_mount.stl`, screw the camera to it (back against the plate) and plug it into
+a **blue USB 3 port** of the Pi. On the Pi (once): `sudo apt install ros-humble-realsense2-camera`, then
+
+```bash
+rs-enumerate-devices | head -5                      # the D435 is listed (USB 3.x)
+ros2 launch jgb_rover_bringup bringup_real.launch.py camera_type:=d435
+ros2 topic hz /camera/depth/image_rect_raw          # ~15 Hz
+ros2 topic hz /visual_scan                          # ~10 Hz, from depth_floor_scan
+```
+
+The depth image becomes the same `/visual_scan` as the webcam gave (obstacles between 3 cm and 30 cm above
+the floor, 0.15-2.5 m), so SLAM needs no change. Camera pose: `camera_d435` in `robot_spec.yaml` (assumed from
+the mount mesh, measure x / z on the robot). Not in the simulator: `camera_type` is real-robot only.
+
 ---
 
 ## When something does not work

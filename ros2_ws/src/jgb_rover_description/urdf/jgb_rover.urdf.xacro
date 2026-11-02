@@ -9,6 +9,8 @@
   <!-- ===================== arguments ===================== -->
   <!-- empty = use camera.pitch_down_default from robot_spec.yaml -->
   <xacro:arg name="camera_pitch" default=""/>
+  <!-- webcam (sim + real) or d435 (real robot: RealSense on its printed mount) -->
+  <xacro:arg name="camera_model" default="webcam"/>
   <xacro:arg name="inject_errors" default="false"/>
   <xacro:arg name="sim_gazebo" default="true"/>
   <!-- rendered controllers yaml (see jgb_rover_control.spec_params); empty = no gz ros2_control plugin -->
@@ -39,9 +41,11 @@
 
   <!-- camera -->
   <xacro:property name="camera_pitch_arg" value="$(arg camera_pitch)"/>
+  <xacro:property name="is_d435" value="${'$(arg camera_model)' == 'd435'}"/>
+  <xacro:property name="cam_spec" value="${spec.camera_d435 if is_d435 else spec.camera}"/>
   <xacro:property name="camera_pitch"
-                  value="${spec.camera.pitch_down_default if camera_pitch_arg == '' else float(camera_pitch_arg)}"/>
-  <xacro:property name="cam_xyz" value="${spec.camera.origin_in_base_footprint}"/>
+                  value="${cam_spec.pitch_down_default if camera_pitch_arg == '' else float(camera_pitch_arg)}"/>
+  <xacro:property name="cam_xyz" value="${cam_spec.origin_in_base_footprint}"/>
 
   <!-- body inertial: spec COM is in base_footprint, shift into base_link -->
   <xacro:property name="mp" value="${spec.mass_properties}"/>
@@ -68,6 +72,15 @@
     <xacro:static_visual name="breadboard"/>
     <xacro:static_visual name="drive_unit_left"/>
     <xacro:static_visual name="drive_unit_right"/>
+    <xacro:if value="${is_d435}">
+      <!-- D435 holder: the mesh is in mm, in base_footprint x / y, z = 0 at its base -->
+      <visual name="d435_mount_visual">
+        <origin xyz="0 0 ${spec.camera_d435.mount.base_z - base_z}" rpy="0 0 0"/>
+        <geometry><mesh filename="${mesh_dir}/${spec.camera_d435.mount.mesh}"
+                        scale="${spec.camera_d435.mount.scale} ${spec.camera_d435.mount.scale} ${spec.camera_d435.mount.scale}"/></geometry>
+        <material name="d435_mount_material"><color rgba="0.95 0.55 0.10 1"/></material>
+      </visual>
+    </xacro:if>
 
     <!-- Collision primitives from collision_suggestion (box entries only; wheels below). -->
     <xacro:macro name="box_collision" params="entry">
@@ -189,6 +202,14 @@
   <!-- camera_link: x forward along the lens axis, origin at the lens centre, pitched down by
        camera_pitch (positive pitch about +Y tilts +X down, REP-103). -->
   <link name="${spec.camera.frame}">
+    <xacro:if value="${is_d435}">
+      <visual>
+        <origin xyz="${cam_spec.body.centre_in_camera_link[0]} ${cam_spec.body.centre_in_camera_link[1]} ${cam_spec.body.centre_in_camera_link[2]}" rpy="0 0 0"/>
+        <geometry><box size="${cam_spec.body.size[0]} ${cam_spec.body.size[1]} ${cam_spec.body.size[2]}"/></geometry>
+        <material name="d435_material"><color rgba="0.1 0.1 0.12 1"/></material>
+      </visual>
+    </xacro:if>
+    <xacro:unless value="${is_d435}">
     <visual>
       <!-- webcam.stl is in base_footprint coordinates, modelled at mesh_cad_pitch; moved back by
            mesh_clearance so the simulated lens is not inside its own housing -->
@@ -196,6 +217,7 @@
       <geometry><mesh filename="${mesh_dir}/webcam.stl"/></geometry>
       <material name="webcam_material"><color rgba="0.05 0.05 0.05 1"/></material>
     </visual>
+    </xacro:unless>
   </link>
   <joint name="camera_joint" type="fixed">
     <parent link="base_link"/>
