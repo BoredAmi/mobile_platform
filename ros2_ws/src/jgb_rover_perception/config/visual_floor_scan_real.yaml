@@ -1,0 +1,9 @@
+# Real-robot overrides for visual_floor_scan.yaml (loaded after it by bringup_real.launch.py).
+# Tuned 2026-10-30 on the WEB007 at 640x360 over grey tiles and a shiny corridor floor:
+#   the wide lens darkens the bottom image corners (vignetting) and with min_stddev_l 8 they became
+#   "obstacles" ~0.4 m away on both sides; bright tile joints + their Canny edges made 3 px runs.
+#   With these: no beam under 0.7 m on a free floor (was ~27 of 160), walls / baseboards still found.
+visual_floor_scan:
+  ros__parameters:
+    min_stddev_l: 16.0                 # brightness change across the floor that is still floor
+    min_obstacle_px: 5                 # tile joints are thinner

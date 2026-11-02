@@ -1,142 +1,413 @@
 Panels:
   - Class: rviz_common/Displays
+    Help Height: 70
     Name: Displays
-    Help Height: 0
-    Splitter Ratio: 0.55
+    Property Tree Widget:
+      Expanded: ~
+      Splitter Ratio: 0.5
+    Tree Height: 247
   - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
     Name: Views
+    Splitter Ratio: 0.5
 Visualization Manager:
   Class: ""
-  Global Options:
-    Fixed Frame: map
-    Background Color: 48; 48; 48
-    Frame Rate: 30
   Displays:
-    - Class: rviz_default_plugins/Grid
-      Name: Grid
-      Enabled: true
-      Reference Frame: map
+    - Alpha: 0.5
       Cell Size: 1
-      Plane Cell Count: 14
+      Class: rviz_default_plugins/Grid
       Color: 110; 110; 110
-      Value: true
-    - Class: rviz_default_plugins/Map
-      Name: Map
       Enabled: true
-      Topic:
-        Value: /map
-        Durability Policy: Transient Local
-        Reliability Policy: Reliable
-        Depth: 1
-      Alpha: 0.8
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 14
+      Reference Frame: map
+      Value: true
+    - Alpha: 0.800000011920929
+      Class: rviz_default_plugins/Map
       Color Scheme: map
-      Value: true
-    - Class: rviz_default_plugins/Map
-      Name: Temperature
+      Draw Behind: false
       Enabled: true
+      Name: Map
       Topic:
-        Value: /temperature_map
-        Durability Policy: Transient Local
-        Reliability Policy: Reliable
         Depth: 1
-      Alpha: 0.6
+        Durability Policy: Transient Local
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /map
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /map_updates
+      Use Timestamp: false
+      Value: true
+    - Alpha: 0.6000000238418579
+      Class: rviz_default_plugins/Map
       Color Scheme: costmap
       Draw Behind: false
+      Enabled: true
+      Name: Temperature
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /temperature_map
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /temperature_map_updates
+      Use Timestamp: false
       Value: true
     - Class: rviz_default_plugins/Marker
+      Enabled: true
       Name: TemperatureLegend
-      Enabled: true
+      Namespaces:
+        {}
       Topic:
-        Value: /temperature_map/legend
-        Durability Policy: Transient Local
-        Reliability Policy: Reliable
         Depth: 1
+        Durability Policy: Transient Local
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /temperature_map/legend
       Value: true
-    - Class: rviz_default_plugins/RobotModel
-      Name: RobotModel
-      Enabled: true
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Collision Enabled: false
+      Description File: ""
       Description Source: Topic
       Description Topic:
-        Value: /robot_description
-        Durability Policy: Transient Local
-      Visual Enabled: true
-      Collision Enabled: false
-      Alpha: 1
-      Value: true
-    - Class: rviz_default_plugins/TF
-      Name: TF
-      Enabled: true
-      Show Names: false
-      Show Axes: true
-      Show Arrows: false
-      Marker Scale: 0.3
-      Value: true
-    - Class: rviz_default_plugins/LaserScan
-      Name: Visual scan
-      Enabled: true
-      Topic:
-        Value: /visual_scan
-        Reliability Policy: Best Effort
         Depth: 5
-      Style: Points
-      Size (Pixels): 4
-      Size (m): 0.03
-      Color Transformer: FlatColor
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_description
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        caster_front_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        caster_rear_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        temp_sensor_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        visual_scan_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Mass Properties:
+        Inertia: false
+        Mass: false
+      Name: RobotModel
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        base_footprint:
+          Value: true
+        base_link:
+          Value: true
+        camera_link:
+          Value: true
+        camera_optical_frame:
+          Value: true
+        caster_front_link:
+          Value: true
+        caster_rear_link:
+          Value: true
+        imu_link:
+          Value: true
+        left_wheel_link:
+          Value: true
+        map:
+          Value: true
+        odom:
+          Value: true
+        right_wheel_link:
+          Value: true
+        temp_sensor_link:
+          Value: true
+        visual_scan_link:
+          Value: true
+      Marker Scale: 0.30000001192092896
+      Name: TF
+      Show Arrows: false
+      Show Axes: true
+      Show Names: false
+      Tree:
+        map:
+          odom:
+            base_footprint:
+              base_link:
+                camera_link:
+                  camera_optical_frame:
+                    {}
+                caster_front_link:
+                  {}
+                caster_rear_link:
+                  {}
+                imu_link:
+                  {}
+                left_wheel_link:
+                  {}
+                right_wheel_link:
+                  {}
+                temp_sensor_link:
+                  {}
+              visual_scan_link:
+                {}
+      Update Interval: 0
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/LaserScan
       Color: 255; 60; 60
-      Alpha: 1
-      Value: true
-    - Class: rviz_default_plugins/Path
-      Name: EKF path
+      Color Transformer: FlatColor
+      Decay Time: 0
       Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Visual scan
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 4
+      Size (m): 0.029999999329447746
+      Style: Points
       Topic:
-        Value: /path/ekf
-      Line Style: Lines
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /visual_scan
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
       Color: 30; 200; 120
-      Alpha: 1
-      Value: true
-    - Class: rviz_default_plugins/Path
-      Name: Ground-truth path
       Enabled: true
-      Topic:
-        Value: /path/ground_truth
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
       Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: EKF path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /path/ekf
+      Value: true
+    - Alpha: 0.800000011920929
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
       Color: 240; 240; 240
-      Alpha: 0.8
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Ground-truth path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /path/ground_truth
       Value: true
-    - Class: rviz_default_plugins/PoseArray
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.15000000596046448
+      Axes Radius: 0.009999999776482582
+      Class: rviz_default_plugins/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
       Name: ArUco markers
-      Enabled: true
-      Topic:
-        Value: /aruco/poses
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
       Shape: Axes
-      Axes Length: 0.15
-      Axes Radius: 0.01
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /aruco/poses
       Value: true
     - Class: rviz_default_plugins/Image
-      Name: Floor scan debug
       Enabled: true
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Floor scan debug
+      Normalize Range: true
       Topic:
-        Value: /visual_scan/debug
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
         Reliability Policy: Best Effort
+        Value: /visual_scan/debug
       Value: true
     - Class: rviz_default_plugins/Image
-      Name: Camera
       Enabled: false
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Camera
+      Normalize Range: true
       Topic:
-        Value: /camera/image_raw
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
         Reliability Policy: Best Effort
+        Value: /camera/image_raw
       Value: false
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: map
+    Frame Rate: 30
+  Name: root
   Tools:
     - Class: rviz_default_plugins/MoveCamera
     - Class: rviz_default_plugins/Select
     - Class: rviz_default_plugins/Measure
+      Line color: 128; 128; 0
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
   Views:
     Current:
+      Angle: 0
       Class: rviz_default_plugins/TopDownOrtho
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Invert Z Axis: false
       Name: Current View
+      Near Clip Distance: 0.009999999776482582
       Scale: 90
+      Target Frame: <Fixed Frame>
+      Value: TopDownOrtho (rviz_default_plugins)
       X: 1
       Y: 0
+    Saved: ~
 Window Geometry:
-  Width: 1500
+  Camera:
+    collapsed: false
+  Displays:
+    collapsed: false
+  Floor scan debug:
+    collapsed: false
   Height: 950
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000100000000000001cb0000035cfc0200000004fb0000000c00430061006d0065007200610000000000ffffffff0000002800fffffffb000000200046006c006f006f00720020007300630061006e002000640065006200750067010000003d000000e10000002800fffffffb000000100044006900730070006c00610079007301000001240000017a000000c900fffffffb0000000a0056006900650077007301000002a4000000f5000000a400ffffff0000040b0000035c00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Views:
+    collapsed: false
+  Width: 1500
+  X: 70
+  Y: 27

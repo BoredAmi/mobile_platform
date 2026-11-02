@@ -15,11 +15,14 @@ Run with bringup_real.launch.py slow:=true (or bringup_sim.launch.py and --sim).
 """
 import argparse
 import math
+import os
 import time
 from collections import deque
 
 import numpy as np
 import rclpy
+import yaml
+from ament_index_python.packages import get_package_share_directory
 from rclpy.signals import SignalHandlerOptions
 from sensor_msgs.msg import Imu, LaserScan
 
@@ -39,7 +42,11 @@ class Explorer:
         self.turn_radius = math.hypot(self.half_width, max(self.front, -self.rear))
         self.scan = None
         self.scan_time = 0.0
-        self.memory = deque()                                      # (time, xs, ys) obstacle points in odom
+        self.memory = deque()                                      # (time, obstacle cells in odom)
+        # beams beyond the scan's range_max mean "no obstacle" (reported as range_max + margin)
+        per_cfg = os.path.join(get_package_share_directory('jgb_rover_perception'), 'config', 'visual_floor_scan.yaml')
+        with open(per_cfg) as f:
+            self.obstacle_max = yaml.safe_load(f)['visual_floor_scan']['ros__parameters']['range_max']
         h.create_subscription(LaserScan, '/visual_scan', self.scan_cb, 10)
 
     def scan_cb(self, msg):
@@ -48,12 +55,13 @@ class Explorer:
             return
         r = np.asarray(msg.ranges)
         ang = msg.angle_min + msg.angle_increment * np.arange(len(r))
-        hit = (r > msg.range_min) & (r <= msg.range_max)           # free / unobserved beams dropped
+        hit = (r > msg.range_min) & (r <= self.obstacle_max)       # free / unobserved beams dropped
         x = self.scan_x + r[hit] * np.cos(ang[hit])
         y = r[hit] * np.sin(ang[hit])
         _, px, py, yaw = self.h.tracks['ekf'].last
         c, s = math.cos(yaw), math.sin(yaw)
-        self.memory.append((self.scan_time, px + c * x - s * y, py + s * x + c * y))
+        cells = np.floor(np.stack([px + c * x - s * y, py + s * x + c * y], axis=1) / self.a.cell).astype(int)
+        self.memory.append((self.scan_time, np.unique(cells, axis=0)))
         while self.memory and self.scan_time - self.memory[0][0] > self.a.memory:
             self.memory.popleft()
 
@@ -62,11 +70,13 @@ class Explorer:
 
     def points(self):
         """Remembered obstacle points (x forward, y left) in base_footprint, so obstacles that left the
-        camera view (beside the wheels, after a turn) still count."""
+        camera view (beside the wheels, after a turn) still count. A cell counts only when at least
+        --min-hits scans saw it: single noisy pixels of the floor scan do not block the robot."""
         if not self.memory:
             return np.empty(0), np.empty(0)
-        ox = np.concatenate([m[1] for m in self.memory])
-        oy = np.concatenate([m[2] for m in self.memory])
+        cells, hits = np.unique(np.concatenate([m[1] for m in self.memory]), axis=0, return_counts=True)
+        cells = cells[hits >= self.a.min_hits]
+        ox, oy = (cells[:, 0] + 0.5) * self.a.cell, (cells[:, 1] + 0.5) * self.a.cell
         _, px, py, yaw = self.h.tracks['ekf'].last
         c, s = math.cos(yaw), math.sin(yaw)
         dx, dy = ox - px, oy - py
@@ -175,6 +185,8 @@ def main():
     ap.add_argument('--clearance', type=float, default=0.55, help='[m] free corridor needed in front of the lens')
     ap.add_argument('--margin', type=float, default=0.10, help='[m] added around the robot outline')
     ap.add_argument('--memory', type=float, default=6.0, help='[s] obstacles stay remembered after leaving the view')
+    ap.add_argument('--cell', type=float, default=0.05, help='[m] grid cell of the obstacle memory')
+    ap.add_argument('--min-hits', type=int, default=3, help='scans that must see a cell before it is an obstacle')
     ap.add_argument('--backup-speed', type=float, default=0.06, help='[m/s] backing up to make room for a turn')
     ap.add_argument('--max-backup', type=float, default=0.25, help='[m] at most, then stop')
     ap.add_argument('--steer-gain', type=float, default=0.3, help='[rad/s per m] of left-right range difference')

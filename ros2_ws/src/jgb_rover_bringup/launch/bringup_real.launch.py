@@ -112,7 +112,8 @@ def launch_setup(context):
         per_share = get_package_share_directory('jgb_rover_perception')
         actions.append(Node(
             package='jgb_rover_perception', executable='visual_floor_scan', output='screen',
-            parameters=[os.path.join(per_share, 'config', 'visual_floor_scan.yaml'), wall]))
+            parameters=[os.path.join(per_share, 'config', 'visual_floor_scan.yaml'),
+                        os.path.join(per_share, 'config', 'visual_floor_scan_real.yaml'), wall]))
         if as_bool(context, 'aruco'):
             actions.append(Node(
                 package='jgb_rover_perception', executable='aruco_detector', output='screen',
