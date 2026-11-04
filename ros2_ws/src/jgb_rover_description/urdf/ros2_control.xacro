@@ -64,6 +64,12 @@
         <state_interface name="linear_acceleration.z"/>
         <param name="frame_id">${spec.imu.frame}</param>
       </sensor>
+      <!-- MCP9808 on the MCU's I2C (firmware 1.1+, NaN when missing): joint_state_broadcaster puts it
+           on /dynamic_joint_states, jgb_rover_temperature/mcu_temperature republishes /temperature -->
+      <sensor name="temp_sensor">
+        <state_interface name="temperature"/>
+        <param name="frame_id">${spec.temperature_sensor.frame}</param>
+      </sensor>
     </xacro:unless>
   </ros2_control>
 

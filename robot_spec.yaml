@@ -88,6 +88,8 @@ temperature_sensor:              # Adafruit 1782 breakout, MCP9808 (I2C), ambien
   origin_in_base_footprint: [-0.100, 0.060, 0.215]   # PLACEHOLDER: rear of the deck, +Y half, on a
                                                      # ~15 mm standoff; measure on the robot. Keep it
                                                      # away from the Pi, motor drivers and battery.
+  # wired to the RP2040's IMU bus now (GP6 / GP7, firmware TEMP_I2C_ADDR, ROS: mcu_temperature);
+  # i2c_bus is for the Pi variant (mcp9808_driver)
   i2c_bus: 1                     # Raspberry Pi I2C1: SDA GPIO2 (pin 3), SCL GPIO3 (pin 5), 3V3 (pin 1)
   i2c_address: 0x18              # A0-A2 low (default)
   resolution_c: 0.0625           # register 0x08 = 0x03

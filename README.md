@@ -495,9 +495,14 @@ Use manual focus and fixed exposure / white balance if the driver allows it: aut
 the floor colour and the floor model has to re-learn. Measure the real camera pitch and pass it as
 `camera_pitch`; the floor scan reads the camera pose from TF, so nothing else changes.
 
-**Temperature sensor (MCP9808, Adafruit 1782).** It goes straight to the Pi's I2C bus, not to the
-microcontroller: VIN → 3V3 (pin 1), GND → pin 6, SDA → GPIO2 (pin 3), SCL → GPIO3 (pin 5), A0–A2
-unconnected (address 0x18). Enable I2C (`raspi-config` → Interface Options → I2C, or
+**Temperature sensor (MCP9808, Adafruit 1782).** Two ways to wire it, both giving the same
+`/temperature`:
+
+- **On the RP2040 (current):** VIN → 3V3, GND → GND, SDA → GP6, SCL → GP7 (the IMU's bus), A0–A2
+  open. Firmware 1.1+ reads it; `bringup_real.launch.py` starts `mcu_temperature` (`temperature:=false`
+  turns it off). Check with `rover_cli.py info` (`temperature 22.50 C (MCP9808)`).
+- **On the Pi's I2C**, for when the Pi rides on the robot: VIN → 3V3 (pin 1), GND → pin 6,
+  SDA → GPIO2 (pin 3), SCL → GPIO3 (pin 5), A0–A2 unconnected (address 0x18). Enable I2C (`raspi-config` → Interface Options → I2C, or
 `dtparam=i2c_arm=on` in `/boot/firmware/config.txt`), add the user to the `i2c` group, then:
 
 ```bash

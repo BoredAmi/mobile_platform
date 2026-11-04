@@ -97,6 +97,13 @@ def launch_setup(context):
 
     actions = [rsp, control_node, *spawners, imu_bias, ekf]
 
+    if as_bool(context, 'temperature'):
+        # MCP9808 on the MCU board (firmware 1.1+) -> /temperature; publishes nothing without the sensor
+        temp_share = get_package_share_directory('jgb_rover_temperature')
+        actions.append(Node(
+            package='jgb_rover_temperature', executable='mcu_temperature', output='screen',
+            parameters=[render(os.path.join(temp_share, 'config', 'mcp9808_driver.yaml')), wall]))
+
     camera = as_bool(context, 'camera')
     if camera and d435:
         # realsense2_camera (apt: ros-humble-realsense2-camera) publishes camera_depth_frame ... below
@@ -105,12 +112,15 @@ def launch_setup(context):
         actions.append(IncludeLaunchDescription(
             PythonLaunchDescriptionSource(rs_launch),
             launch_arguments={
-                'camera_name': 'camera',
+                # no namespace: topics /camera/depth/... as in depth_floor_scan.yaml (the default
+                # namespace 'camera' would give /camera/camera/depth/...); frames camera_link, camera_depth_*
+                'camera_name': 'camera', 'camera_namespace': '',
                 'enable_depth': 'true', 'enable_color': LaunchConfiguration('d435_color'),
                 'enable_infra1': 'false', 'enable_infra2': 'false', 'enable_gyro': 'false',
                 'enable_accel': 'false', 'pointcloud.enable': 'false', 'align_depth.enable': 'false',
-                'depth_module.profile': LaunchConfiguration('d435_depth_profile'),
-                'rgb_camera.profile': LaunchConfiguration('d435_color_profile'),
+                # realsense2_camera 4.5x names (depth_module.profile / rgb_camera.profile are ignored)
+                'depth_module.depth_profile': LaunchConfiguration('d435_depth_profile'),
+                'rgb_camera.color_profile': LaunchConfiguration('d435_color_profile'),
                 'initial_reset': 'true',      # a D435 left in a bad state by a killed process
             }.items()))
     elif camera:
@@ -183,6 +193,8 @@ def generate_launch_description():
         DeclareLaunchArgument('slam_scan_matching', default_value='false'),
         DeclareLaunchArgument('aruco', default_value='false', description='ArUco landmark detector'),
         DeclareLaunchArgument('ekf_imu_accel', default_value='false'),
+        DeclareLaunchArgument('temperature', default_value='true',
+                              description='/temperature from the MCP9808 on the MCU board (mcu_temperature)'),
         DeclareLaunchArgument('slow', default_value='false',
                               description='robot_spec.yaml drive.slow_limits instead of suggested_limits'),
         DeclareLaunchArgument('rviz', default_value='false', description='RViz (off: the Pi has no display)'),

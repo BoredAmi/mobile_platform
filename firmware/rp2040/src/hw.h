@@ -27,6 +27,11 @@ typedef struct {
 uint8_t imu_init(void);
 bool imu_read(imu_sample_t *out);
 
+/* ---- MCP9808 temperature sensor on the IMU's I2C bus (call after imu_init, which sets up I2C) ---- */
+/* Checks the manufacturer / device IDs and sets 0.0625 C resolution; false = not found. */
+bool temp_init(void);
+bool temp_read(float *celsius);
+
 /* ---- battery: millivolts, 0 when BATTERY_DIVIDER_RATIO is 0 ---- */
 void battery_init(void);
 uint16_t battery_read_mv(void);

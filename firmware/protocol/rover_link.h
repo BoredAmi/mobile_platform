@@ -47,6 +47,8 @@ extern "C" {
 #define RL_MSG_CONFIG 0x83      /* rl_config_t in use (reply to PING) */
 #define RL_MSG_LOG 0x84         /* text, not NUL-terminated */
 #define RL_MSG_CONFIG_ACK 0x85  /* rl_config_t as applied (after clamping), reply to SET_CONFIG */
+#define RL_MSG_TEMPERATURE 0x86 /* rl_temperature_t, TEMP_RATE_HZ; added in firmware 1.1 without a
+                                   version bump (no existing layout changed, older hosts skip it) */
 
 /* rl_telemetry_t.status bits */
 #define RL_STATUS_IMU_OK (1u << 0)          /* last IMU read succeeded */
@@ -121,6 +123,12 @@ typedef struct RL_PACKED {
   uint8_t board_id[8];       /* flash unique ID, tells boards apart */
 } rl_info_t;
 
+typedef struct RL_PACKED {
+  uint32_t t_us;          /* MCU clock when it was read */
+  float temp_c;           /* ambient air, MCP9808 (0 when not valid) */
+  uint8_t valid;          /* 1 = sensor found and read, 0 = missing / read failed */
+} rl_temperature_t;
+
 #ifdef __cplusplus
 #define RL_STATIC_ASSERT static_assert
 #else
@@ -131,6 +139,7 @@ RL_STATIC_ASSERT(sizeof(rl_cmd_vel_t) == 8, "layout");
 RL_STATIC_ASSERT(sizeof(rl_config_t) == 28, "layout");
 RL_STATIC_ASSERT(sizeof(rl_telemetry_t) == 76, "layout");
 RL_STATIC_ASSERT(sizeof(rl_info_t) == 20, "layout");
+RL_STATIC_ASSERT(sizeof(rl_temperature_t) == 9, "layout");
 
 uint16_t rl_crc16(const uint8_t *data, size_t len);
 

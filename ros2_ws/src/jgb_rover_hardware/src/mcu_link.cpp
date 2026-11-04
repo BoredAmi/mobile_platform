@@ -15,6 +15,7 @@ namespace
 {
 constexpr double kTwoPi = 6.283185307179586;
 constexpr double kRequestInterval = 0.2;  // s between PING / SET_CONFIG retries
+constexpr double kTemperatureTimeout = 2.0;  // s; the board sends it at 2 Hz
 
 double seconds_since(McuLink::Clock::time_point t)
 {
@@ -171,6 +172,9 @@ void McuLink::poll()
     state_.velocity = {0.0, 0.0};
     state_.gyro = {0.0, 0.0, 0.0};
   }
+  if (seconds_since(last_temperature_) >= kTemperatureTimeout) {
+    state_.temperature = std::numeric_limits<double>::quiet_NaN();
+  }
 }
 
 void McuLink::handle(uint8_t type, const uint8_t * payload, std::size_t len)
@@ -215,6 +219,14 @@ void McuLink::handle(uint8_t type, const uint8_t * payload, std::size_t len)
         }
         phase_ = Phase::Ready;
         log_(Level::Info, "MCU board configured");
+      }
+      break;
+    case RL_MSG_TEMPERATURE:
+      if (len == sizeof(rl_temperature_t)) {
+        rl_temperature_t t;
+        std::memcpy(&t, payload, sizeof(t));
+        state_.temperature = t.valid ? t.temp_c : std::numeric_limits<double>::quiet_NaN();
+        last_temperature_ = Clock::now();
       }
       break;
     case RL_MSG_LOG:

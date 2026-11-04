@@ -14,3 +14,13 @@ mcp9808_driver:
     ground_truth_topic: /ground_truth/odom
     layout_file: ''                   # set by the launch file for the apartment worlds
     seed: 0
+
+# mcu_temperature (real robot, sensor on the MCU board's I2C instead of the Pi's): same output
+mcu_temperature:
+  ros__parameters:
+    topic: /temperature
+    frame_id: $(spec temperature_sensor.frame)
+    sensor_name: temp_sensor          # ros2_control sensor in ros2_control.xacro
+    accuracy_c: $(spec temperature_sensor.accuracy_c)
+    rate_hz: $(spec temperature_sensor.rate_hz)
+    offset_c: 0.0                     # calibration against a reference thermometer

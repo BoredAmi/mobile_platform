@@ -3,8 +3,9 @@
 Firmware for a **Waveshare RP2040-Zero** that drives the two JGB37-520 motors, reads their Hall
 encoders and the MPU6050, and talks to the ROS 2 computer over USB. It is connected to the
 development PC now and later to the Raspberry Pi 4 with the same USB cable; nothing changes on
-either side. The temperature sensor is not on this board (it goes to the Pi's I2C, see the main
-README).
+either side. The MCP9808 temperature sensor (Adafruit 1782) can share the IMU's I2C bus (firmware
+1.1+): it is read at 2 Hz and sent as `RL_MSG_TEMPERATURE`; the ROS side publishes it as `/temperature`
+(`mcu_temperature`). Without it everything else works as before.
 
 ```
  ROS 2 computer (PC now, Pi later)                         RP2040-Zero
@@ -45,6 +46,7 @@ All signals are 3.3 V. **The RP2040 is not 5 V tolerant.**
 | GP4, GP5 | right encoder A, B | |
 | 3V3, GND | encoder VCC, GND (both motors) | **power the encoders from 3V3**: their outputs are pulled up to their own supply |
 | GP6 (SDA), GP7 (SCL) | GY-521 SDA, SCL | I2C1, 400 kHz. GY-521 VCC → 3V3, AD0 → GND (address 0x68); the GY-521 has its own pull-ups |
+| GP6 (SDA), GP7 (SCL) | MCP9808 SDA, SCL (optional, same wires) | Adafruit 1782: VIN → 3V3, GND → GND, A0-A2 and Alert open (address 0x18); its 10 kΩ pull-ups in parallel with the GY-521's are fine |
 | GP8 | R_EN **and** L_EN of **both** BTS7960 modules (4 pins tied together) | high = bridges enabled; 10 kΩ pull-down to GND |
 | GP26, GP27 | left module RPWM, LPWM | PWM wires on this edge, away from the encoders |
 | GP14, GP15 | right module RPWM, LPWM | |

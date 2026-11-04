@@ -79,13 +79,17 @@ CallbackReturn JgbRoverSystem::on_init(const hardware_interface::HardwareInfo & 
   }
   joint_names_ = {left, right};
 
-  // ---- optional IMU sensor ----
-  if (info_.sensors.size() > 1) {
-    RCLCPP_ERROR(logger_, "at most one sensor (the IMU) is supported");
-    return CallbackReturn::ERROR;
-  }
-  if (!info_.sensors.empty()) {
-    imu_name_ = info_.sensors[0].name;
+  // ---- optional sensors: the IMU, and a temperature sensor (one "temperature" state interface) ----
+  for (const auto & sensor : info_.sensors) {
+    const bool is_temperature = sensor.state_interfaces.size() == 1 &&
+      sensor.state_interfaces[0].name == "temperature";
+    std::string & name = is_temperature ? temperature_name_ : imu_name_;
+    if (!name.empty()) {
+      RCLCPP_ERROR(logger_, "at most one IMU and one temperature sensor are supported ('%s')",
+        sensor.name.c_str());
+      return CallbackReturn::ERROR;
+    }
+    name = sensor.name;
   }
 
   // ---- board configuration (sent at every connect) ----
@@ -145,6 +149,9 @@ std::vector<hardware_interface::StateInterface> JgbRoverSystem::export_state_int
     for (int i = 0; i < 3; ++i) {
       s.emplace_back(imu_name_, std::string("linear_acceleration.") + xyz[i], &linear_acceleration_[i]);
     }
+  }
+  if (!temperature_name_.empty()) {
+    s.emplace_back(temperature_name_, "temperature", &temperature_);
   }
   return s;
 }
@@ -224,6 +231,7 @@ return_type JgbRoverSystem::read(const rclcpp::Time &, const rclcpp::Duration &)
   velocity_ = st.velocity;
   angular_velocity_ = st.gyro;
   linear_acceleration_ = st.accel;
+  temperature_ = st.temperature;
   return return_type::OK;
 }
 

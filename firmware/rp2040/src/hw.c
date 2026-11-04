@@ -222,6 +222,50 @@ bool imu_read(imu_sample_t *out) {
   return true;
 }
 
+/* ======================= MCP9808 (on the IMU's I2C bus) ======================= */
+
+#define MCP_REG_CONFIG 0x01
+#define MCP_REG_AMBIENT 0x05
+#define MCP_REG_MANUFACTURER_ID 0x06
+#define MCP_REG_DEVICE_ID 0x07
+#define MCP_REG_RESOLUTION 0x08
+#define MCP_MANUFACTURER_ID 0x0054
+#define MCP_DEVICE_ID 0x04          /* upper byte of the device ID register (lower = revision) */
+
+static bool mcp_read_u16(uint8_t reg, uint16_t *out) {
+  uint8_t b[2];
+  if (i2c_write_timeout_us(IMU_I2C, TEMP_I2C_ADDR, &reg, 1, true, I2C_TIMEOUT_US) != 1 ||
+      i2c_read_timeout_us(IMU_I2C, TEMP_I2C_ADDR, b, 2, false, I2C_TIMEOUT_US) != 2) {
+    return false;
+  }
+  *out = (uint16_t)((b[0] << 8) | b[1]);
+  return true;
+}
+
+bool temp_init(void) {
+  uint16_t manufacturer, device;
+  if (!mcp_read_u16(MCP_REG_MANUFACTURER_ID, &manufacturer) || manufacturer != MCP_MANUFACTURER_ID ||
+      !mcp_read_u16(MCP_REG_DEVICE_ID, &device) || (device >> 8) != MCP_DEVICE_ID) {
+    return false;
+  }
+  uint8_t config[3] = {MCP_REG_CONFIG, 0x00, 0x00};     /* continuous conversion */
+  uint8_t resolution[2] = {MCP_REG_RESOLUTION, 0x03};   /* 0.0625 C, 250 ms */
+  return i2c_write_timeout_us(IMU_I2C, TEMP_I2C_ADDR, config, 3, false, I2C_TIMEOUT_US) == 3 &&
+         i2c_write_timeout_us(IMU_I2C, TEMP_I2C_ADDR, resolution, 2, false, I2C_TIMEOUT_US) == 2;
+}
+
+bool temp_read(float *celsius) {
+  uint16_t raw;
+  if (!mcp_read_u16(MCP_REG_AMBIENT, &raw)) {
+    return false;
+  }
+  /* 13-bit two's complement in 1/16 C; bits 15-13 are alarm flags */
+  uint8_t upper = (raw >> 8) & 0x1F, lower = raw & 0xFF;
+  float t = (float)(upper & 0x0F) * 16.0f + (float)lower / 16.0f;
+  *celsius = (upper & 0x10) ? t - 256.0f : t;
+  return true;
+}
+
 /* ======================= battery ======================= */
 
 void battery_init(void) {

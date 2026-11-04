@@ -141,10 +141,23 @@ floor scan and the SLAM map.
 ### RealSense D435 instead of the webcam
 
 Print `meshes/9b_realsense_d435_mount.stl`, screw the camera to it (back against the plate) and plug it into
-a **blue USB 3 port** of the Pi. On the Pi (once): `sudo apt install ros-humble-realsense2-camera`, then
+a **blue USB 3 port** of the Pi. The D435i works the same (same housing; its IMU is not used). On the Pi or
+laptop (once): `sudo apt install ros-humble-realsense2-camera` and Intel's udev rules (without them only root
+can open the camera):
 
 ```bash
-rs-enumerate-devices | head -5                      # the D435 is listed (USB 3.x)
+sudo curl -L -o /etc/udev/rules.d/99-realsense-libusb.rules \
+  https://raw.githubusercontent.com/IntelRealSense/librealsense/v2.58.4/config/99-realsense-libusb.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
+
+**The cable must be USB 3** ("5 Gbps" / "10 Gbps" / "USB 3.2", 1 m or shorter). A charging cable (even a
+100 W one) carries USB 2 only: the camera then reports `Usb Type Descriptor: 2.1` and the depth stream
+stalls (0-2 fps, "Frames didn't arrive" and `CLEAR_HALT` in the kernel log), on the kernel driver and on
+an RSUSB build of librealsense alike (measured on the laptop, 2026-11-02). Then
+
+```bash
+rs-enumerate-devices | grep -E "Name|Usb Type"     # D435(I), Usb Type Descriptor 3.2
 ros2 launch jgb_rover_bringup bringup_real.launch.py camera_type:=d435
 ros2 topic hz /camera/depth/image_rect_raw          # ~15 Hz
 ros2 topic hz /visual_scan                          # ~10 Hz, from depth_floor_scan

@@ -4,9 +4,12 @@
 // Joints (velocity command; position + velocity state): left_wheel_joint, right_wheel_joint.
 // Sensor "imu_sensor": orientation.{x,y,z,w} (always identity, unknown), angular_velocity.{x,y,z},
 // linear_acceleration.{x,y,z}, read by imu_sensor_broadcaster (-> /imu/data_raw).
+// Optional sensor with a "temperature" state interface (MCP9808 on the board, degC, NaN when missing),
+// published through joint_state_broadcaster's /dynamic_joint_states (-> mcu_temperature -> /temperature).
 #pragma once
 
 #include <array>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -55,6 +58,9 @@ private:
   std::array<double, 4> orientation_{0.0, 0.0, 0.0, 1.0};
   std::array<double, 3> angular_velocity_{};
   std::array<double, 3> linear_acceleration_{};
+
+  std::string temperature_name_;
+  double temperature_{std::numeric_limits<double>::quiet_NaN()};
 
   bool active_{false};
 };

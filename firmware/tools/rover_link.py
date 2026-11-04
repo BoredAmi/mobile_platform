@@ -15,6 +15,7 @@ INFO = 0x82
 CONFIG = 0x83
 LOG = 0x84
 CONFIG_ACK = 0x85
+TEMPERATURE = 0x86   # firmware 1.1+, MCP9808 on the IMU bus
 
 STATUS_BITS = {
     0: 'IMU_OK', 1: 'MOTORS_ENABLED', 2: 'MODE_VEL', 3: 'MODE_PWM', 4: 'CMD_TIMEOUT',
@@ -169,9 +170,22 @@ class Info:
         return cls(*struct.unpack(cls.FORMAT, payload))
 
 
+@dataclass
+class Temperature:
+    t_us: int
+    temp_c: float
+    valid: int
+    FORMAT = '<IfB'
+
+    @classmethod
+    def unpack(cls, payload: bytes) -> 'Temperature':
+        return cls(*struct.unpack(cls.FORMAT, payload))
+
+
 assert struct.calcsize(Config.FORMAT) == 28
 assert struct.calcsize(Telemetry.FORMAT) == 76
 assert struct.calcsize(Info.FORMAT) == 20
+assert struct.calcsize(Temperature.FORMAT) == 9
 
 
 def cmd_vel(left: float, right: float) -> bytes:

@@ -55,6 +55,9 @@ static uint8_t imu_whoami;
 static bool imu_ok;
 static absolute_time_t imu_retry_time;
 
+static bool temp_ok;
+static absolute_time_t temp_retry_time;
+
 /* ------------------------------------------------------------------ link */
 
 static bool link_send(uint8_t type, const void *payload, size_t len) {
@@ -176,6 +179,8 @@ int main(void) {
   imu_whoami = imu_init();
   imu_ok = imu_whoami != 0;
   imu_retry_time = make_timeout_time_ms(IMU_RETRY_MS);
+  temp_ok = temp_init();  /* optional; same bus, set up by imu_init */
+  temp_retry_time = make_timeout_time_ms(TEMP_RETRY_MS);
 
   watchdog_enable(WATCHDOG_TIMEOUT_MS, true);
 
@@ -241,6 +246,21 @@ int main(void) {
     }
     if (tick % CONTROL_HZ == 0) {
       battery_mv = battery_read_mv();
+    }
+    if (tick % (CONTROL_HZ / TEMP_RATE_HZ) == 0) {
+      if (!temp_ok && absolute_time_diff_us(temp_retry_time, get_absolute_time()) >= 0) {
+        temp_ok = temp_init();  /* a missing device NACKs at once: no blocking */
+        temp_retry_time = make_timeout_time_ms(TEMP_RETRY_MS);
+        if (temp_ok) link_log("temperature sensor found");
+      }
+      float celsius = 0.0f;   /* local, not &msg.temp_c: the M0+ faults on unaligned (packed) access */
+      if (temp_ok && !temp_read(&celsius)) {
+        temp_ok = false;
+        temp_retry_time = make_timeout_time_ms(TEMP_RETRY_MS);
+        link_log("temperature sensor read failed");
+      }
+      rl_temperature_t tp = {.t_us = t_us, .temp_c = temp_ok ? celsius : 0.0f, .valid = temp_ok ? 1 : 0};
+      link_send(RL_MSG_TEMPERATURE, &tp, sizeof(tp));
     }
 
     /* --- command watchdog --- */

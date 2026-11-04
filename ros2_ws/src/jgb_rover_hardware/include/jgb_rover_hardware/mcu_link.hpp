@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <string>
 
 #include "jgb_rover_hardware/serial_port.hpp"
@@ -24,6 +25,8 @@ struct McuState
   std::array<double, 2> velocity{};  // rad/s, board estimate (0 when telemetry is stale)
   std::array<double, 3> gyro{};      // rad/s, imu_link (0 when stale or IMU missing)
   std::array<double, 3> accel{};     // m/s^2, imu_link
+  // degC, MCP9808 on the board's I2C (firmware 1.1+); NaN when missing, failed or stale
+  double temperature{std::numeric_limits<double>::quiet_NaN()};
   rl_telemetry_t last{};             // last raw telemetry
   bool have_telemetry{false};
 };
@@ -84,6 +87,7 @@ private:
   Clock::time_point last_request_{};
   Clock::time_point last_open_attempt_{};
   Clock::time_point last_telemetry_{};
+  Clock::time_point last_temperature_{};
   rl_info_t info_{};
   McuState state_;
   std::array<int64_t, 2> total_counts_{};

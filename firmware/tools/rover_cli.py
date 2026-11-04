@@ -83,6 +83,7 @@ class Link:
         self.config = None
         self.config_ack = None
         self.latest = None
+        self.temperature = None   # last rl.Temperature (firmware 1.1+)
 
     def send(self, frame: bytes):
         self.ser.write(frame)
@@ -103,6 +104,8 @@ class Link:
                     self.config = rl.Config.unpack(p)
                 elif t == rl.CONFIG_ACK and len(p) == 28:
                     self.config = self.config_ack = rl.Config.unpack(p)
+                elif t == rl.TEMPERATURE and len(p) == 9:
+                    self.temperature = rl.Temperature.unpack(p)
                 elif t == rl.LOG:
                     print(f'[board] {p.decode(errors="replace")}')
             if out or time.monotonic() >= end:
@@ -150,6 +153,12 @@ def fmt_flags(flags):
     return ', '.join(n for i, n in enumerate(names) if flags & (1 << i)) or 'none'
 
 
+def fmt_temperature(t):
+    if t is None:
+        return 'no message (firmware older than 1.1?)'
+    return f'{t.temp_c:.2f} C (MCP9808)' if t.valid else 'MCP9808 NOT FOUND (0x18 on GP6 / GP7)'
+
+
 def cmd_info(link, args, cfg):
     link.handshake()
     i = link.info
@@ -159,6 +168,10 @@ def cmd_info(link, args, cfg):
     print(f'board id      {i.board_id.hex()}')
     print(f'uptime        {i.uptime_ms / 1000:.1f} s, last reset: {"WATCHDOG" if i.reset_reason else "power-on / reset"}')
     print(f'IMU WHO_AM_I  0x{i.imu_whoami:02x} ({who.get(i.imu_whoami, "unknown, may still work")})')
+    end = time.monotonic() + 1.2           # the board sends the temperature at 2 Hz
+    while link.temperature is None and time.monotonic() < end:
+        link.poll(0.1)
+    print(f'temperature   {fmt_temperature(link.temperature)}')
     c = link.config
     print(f'config        cpr {c.counts_per_rev:.0f}, kp {c.kp:.3f}, ki {c.ki:.3f}, kff {c.kff:.4f}, '
           f'deadband {c.deadband_duty:.3f}, max_duty {c.max_duty:.2f}, window {c.vel_window}, '
@@ -183,7 +196,7 @@ def cmd_monitor(link, args, cfg):
                       f'vel {s.vel[0]:6.2f} {s.vel[1]:6.2f} rad/s | '
                       f'gyro {s.gyro[0]:6.3f} {s.gyro[1]:6.3f} {s.gyro[2]:6.3f} | '
                       f'acc {s.accel[0]:5.2f} {s.accel[1]:5.2f} {s.accel[2]:5.2f} | '
-                      f'{s.battery_mv / 1000:.2f} V | rx_err {s.rx_errors} drop {s.tx_dropped} | '
+                      f'{s.battery_mv / 1000:.2f} V | {fmt_temperature(link.temperature)} | rx_err {s.rx_errors} drop {s.tx_dropped} | '
                       f'{" ".join(s.status_names())}')
                 last_print = now
     except KeyboardInterrupt:

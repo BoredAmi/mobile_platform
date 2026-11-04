@@ -23,6 +23,7 @@ setup(
     entry_points={
         'console_scripts': [
             'mcp9808_driver = jgb_rover_temperature.mcp9808_driver:main',
+            'mcu_temperature = jgb_rover_temperature.mcu_temperature:main',
             'sim_mcp9808 = jgb_rover_temperature.sim_mcp9808:main',
             'temperature_mapper = jgb_rover_temperature.temperature_mapper:main',
         ],

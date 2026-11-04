@@ -9,7 +9,7 @@
 #ifndef JGB_CONFIG_H
 #define JGB_CONFIG_H
 
-#define FIRMWARE_VERSION 0x0100 /* 1.0 */
+#define FIRMWARE_VERSION 0x0101 /* 1.1: MCP9808 temperature */
 
 /* ---------------- timing ---------------- */
 #define CONTROL_HZ 100           /* control loop, encoder + IMU sampling and telemetry rate */
@@ -19,7 +19,7 @@
  *  GP26 / GP27  left  RPWM / LPWM    (IN1 / IN2 in MOTOR_DRIVER_PWM_DIR), same PWM slice, on the PWM edge
  *  GP2  / GP3   left encoder A / B   must be consecutive (PIO), A first
  *  GP4  / GP5   right encoder A / B
- *  GP6  / GP7   I2C1 SDA / SCL       MPU6050 (GY-521 has its own pull-ups)
+ *  GP6  / GP7   I2C1 SDA / SCL       MPU6050 (GY-521 has its own pull-ups) + MCP9808 (optional)
  *  GP8          MPU6050 INT          not used yet
  *  GP8          motor driver enable  R_EN + L_EN of BOTH BTS7960 modules (10k pull-down to GND)
  *  GP14 / GP15  right RPWM / LPWM    (IN1 / IN2 in MOTOR_DRIVER_PWM_DIR)
@@ -70,6 +70,13 @@
  * map {1, 0, 2}, sign {-1, 1, 1}. */
 #define IMU_AXIS_MAP {0, 1, 2}
 #define IMU_AXIS_SIGN {1, 1, 1}
+
+/* ---------------- temperature sensor (MCP9808, Adafruit 1782), optional ---------------- */
+/* On the IMU's I2C bus: VIN 3V3, SDA GP6, SCL GP7, A0-A2 open (robot_spec.yaml temperature_sensor).
+ * Read at 0.0625 C resolution (250 ms conversion) and sent as RL_MSG_TEMPERATURE. */
+#define TEMP_I2C_ADDR 0x18         /* robot_spec temperature_sensor.i2c_address */
+#define TEMP_RATE_HZ 2             /* robot_spec temperature_sensor.rate_hz; must divide CONTROL_HZ */
+#define TEMP_RETRY_MS 5000         /* look for the sensor again this often while it is missing */
 
 /* ---------------- battery (optional) ---------------- */
 /* 12 V AGM: e.g. 100k (to battery +) / 22k (to GND) -> 13.8 V reads 2.49 V. 0 = not fitted. */
